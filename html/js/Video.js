@@ -11,8 +11,10 @@ class Video {
     this.LoadingTimeout = null;
     this.OnVideoStopped = null;
     this.OnVideoLoading = null;
+    this.OnVideoPlaying = null;
+    this.OnVideoPaused = null;
     this.period = 200;
-    this.waitTimeOut = 3000;
+    this.waitTimeOut = 1000;
     this.ForcedFrame = null;
     this.loop = false;
   }
@@ -57,7 +59,7 @@ class Video {
   SendFrame(index) {
     console.log("SendFrame:", index);
     this.GetOrFetchFrame(index).then((frame) => {
-      if (!isPlaying) {
+      if (!this.isPlaying) {
         // playback was stopped
         return;
       }
@@ -89,11 +91,13 @@ class Video {
   Pause() {
     if (!this.isPlaying) return;
     this.isPlaying = false;
+    if (this.OnVideoPaused) this.OnVideoPaused();
   }
   Play() {
     console.log("Play while:", this.isPlaying);
     if (this.isPlaying) return;
     this.isPlaying = true;
+    if (this.OnVideoPlaying) this.OnVideoPlaying();
     this.LoadMeta().then(() => {
       this.BeginBuffering();
       this.SendFrame(this.currentIndex);

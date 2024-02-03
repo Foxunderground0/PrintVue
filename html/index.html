@@ -134,15 +134,16 @@
         spinner.style.display = "none";
       }
 
-      let isPlaying = false; // Flag to track play/pause state
       function togglePlayPause() {
         const playPauseButton = document.getElementById("playPauseButton");
         // Toggle the play/pause state
-        isPlaying = !isPlaying;
         // Toggle the play/pause symbol
+        if (currentVideo.isPlaying) currentVideo.Pause();
+        else currentVideo.Play();
+        SetPlayIcon(currentVideo.isPlaying);
+      }
+      function SetPlayIcon(isPlaying){        
         playPauseButton.innerHTML = isPlaying ? "&#10074;&#10074;" : "&#9658;";
-        if (isPlaying) currentVideo.Play();
-        else currentVideo.Pause();
       }
 
       function showImageFrame(imgData) {
@@ -162,7 +163,6 @@
         console.log("Seek to:", fraction);
         currentVideo.Seek(fraction);
         setSeekIndicator(fraction);
-        //if (!isPlaying) togglePlayPause();
         return fraction;
       }
 
@@ -186,11 +186,16 @@
           }
         };
         vid.OnVideoStopped = () => {
-          if (isPlaying) togglePlayPause();
-          isPlaying = false;
+            togglePlayPause(currentVideo.isPlaying);
         };
         vid.OnVideoLoading = () =>{
             showSpinner();
+        }
+        vid.OnVideoPlaying = () => {
+            SetPlayIcon(vid.isPlaying);
+        }
+        vid.OnVideoPaused = () => {
+            SetPlayIcon(vid.isPlaying);
         }
         vid.OnFrameBuffered = (progress) => {
           setBufferIndicator(progress);

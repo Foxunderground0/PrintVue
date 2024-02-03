@@ -1,0 +1,111 @@
+#imagePlayer {
+  position: relative;
+  width: 80%;
+  height: 30vh;
+  margin-left: 10%;
+  margin-bottom: 10vh;
+  overflow: hidden;
+  border: 1px solid #ccc;
+}
+
+#imageViewport {
+  width: 100%;
+  height: 100%;
+}
+
+#playPauseButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  font-size: 24px;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 10px 20px;
+  border: none;
+  outline: none;
+  border-radius: 6px;
+  display: block;
+  /* Hidden by default */
+  opacity: 70%;
+  transition: 0.15s ease;
+}
+
+#playPauseButton:hover {
+  font-size: 30px;
+  transition: 0.15s ease;
+  opacity: 100%;
+}
+
+#playPauseButton:active {
+  font-size: 26px;
+  /* Adjust the font size for the click state */
+  opacity: 100%;
+  /* Adjust the opacity for the click state */
+  transition: 0.1s ease;
+  /* Adjust the transition duration for the click state */
+}
+
+#seekBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background-color: #ccc;
+  opacity: 30%;
+  transition: 0.3s ease;
+}
+
+#seekBar:hover {
+  height: 15px;
+  opacity: 100%;
+  transition: 0.3s ease;
+}
+
+#seekBarFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0%;
+  background-color: #038bfa;
+  transition: width 0.1s ease;
+}
+
+#bufferBarFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0%;
+  background-color: #e8e406d7;
+  transition: width 0.1s ease;
+}
+
+#spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #3498db;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  z-index: 2;
+  display: none;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}

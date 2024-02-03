@@ -41,6 +41,24 @@ class Video {
       }
     });
   }
+  LoadThumbnail(){
+    return new Promise((resolve, reject) => {
+        this.LoadMeta().then(() => {
+            fetch(this.frames[0].file).then(async (resp) => {
+                if (!resp.ok) {
+                  throw new Error("Network response was not ok");
+                }
+                const blob = await resp.blob();
+                const objectURL = URL.createObjectURL(blob);
+      
+                // cache the data for future use
+                this.frames[0].imageData = objectURL;
+                console.log("Cached thumb");
+                resolve(this.frames[0].imageData);
+              });
+        })
+    });
+  }
   Seek(fraction) {
     var index = Math.round(fraction * (this.frames.length - 1));
     if (index < 0) index = 0;

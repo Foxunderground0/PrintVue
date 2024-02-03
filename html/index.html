@@ -4,104 +4,37 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Image Player</title>
+    <link rel="stylesheet" href="css/bootstrap-theme.css" />
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css" />
+    <link rel="stylesheet" href="css/bootstrap.css" />
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/VideoPlayer.css" />
+
     <style>
-      #imagePlayer {
-        position: relative;
-        width: 480px;
-        height: 270px;
-        overflow: hidden;
-        border: 1px solid #ccc;
-      }
-
-      #imageViewport {
+      /* Additional styling if needed */
+      .thumbnail-container {
         width: 100%;
-        height: 100%;
+        height: 30vh;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        transition: 0.2s ease;
       }
-
-      #playPauseButton {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        cursor: pointer;
-        font-size: 24px;
-        color: #fff;
-        background-color: rgba(0, 0, 0, 0.7);
-        padding: 10px 20px;
-        border: none;
-        outline: none;
-        border-radius: 6px;
-        display: block; /* Hidden by default */
-        opacity: 70%;
-        transition: 0.15s ease;
-      }
-      #playPauseButton:hover {
-        font-size: 30px;
-        transition: 0.15s ease;
-        opacity: 100%;
-      }
-      #playPauseButton:active {
-        font-size: 26px; /* Adjust the font size for the click state */
-        opacity: 100%; /* Adjust the opacity for the click state */
-        transition: 0.1s ease; /* Adjust the transition duration for the click state */
-      }
-
-      #seekBar {
-        position: absolute;
-        bottom: 0;
-        left: 0;
+      .thumbnail {
         width: 100%;
-        height: 5px;
-        background-color: #ccc;
-        opacity: 30%;
-        transition: 0.3s ease;
+        height: 30vh;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        transition: 0.2s ease;
       }
-      #seekBar:hover {
-        height: 15px;
-        opacity: 100%;
-        transition: 0.3s ease;
-      }
-
-      #seekBarFill {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 0%;
-        background-color: #038bfa;
-        transition: width 0.1s ease;
-      }
-      #bufferBarFill {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 0%;
-        background-color: #e8e406d7;
-        transition: width 0.1s ease;
-      }
-      #spinner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-radius: 50%;
-        border-top: 4px solid #3498db;
-        width: 30px;
-        height: 30px;
-        animation: spin 1s linear infinite;
-        z-index: 2;
-        display: none;
-        pointer-events: none;
-      }
-      @keyframes spin {
-        0% {
-          transform: translate(-50%, -50%) rotate(0deg);
-        }
-        100% {
-          transform: translate(-50%, -50%) rotate(360deg);
-        }
+      .thumbnail:hover{
+        transition: 0.2s ease;
+        width: 105%;
+        margin-left: -2.4%;
+        height: 31.5vh;
+        margin-top: -0.75vh;
+        border-radius: 5px;
+        box-shadow:0px 0px 10px 0px rgba(0, 0, 0, 0.8);
       }
     </style>
   </head>
@@ -115,115 +48,51 @@
         <div id="seekBarFill"></div>
       </div>
     </div>
+
+    <div class="container-fluid">
+      <div class="row" id="thumbnailRow">
+        <!-- Thumbnails will be dynamically added here -->
+      </div>
+    </div>
+
     <script src="js/Video.js"></script>
+    <script src="js/VideoPlayer.js"></script>
     <script>
-      // UI Logic
-      const imagePlayer = document.getElementById("imagePlayer");
-      const imageViewport = document.getElementById("imageViewport");
-      const playPauseButton = document.getElementById("playPauseButton");
-      const seekBar = document.getElementById("seekBar");
-      const seekBarFill = document.getElementById("seekBarFill");
-      const bufferBarFill = document.getElementById("bufferBarFill");
-      const spinner = document.getElementById("spinner");
+      //LoadVideo("gallery/s0/");
+      var videoList = [];
+      function FetchAll() {
+        fetch("gallery/sequences.json").then(async (resp) => {
+          var thumbnails = (await resp.json()).list;
 
-      function showSpinner() {
-        spinner.style.display = "block";
-      }
+          const thumbnailRow = document.getElementById("thumbnailRow");
+          thumbnailRow.innerHTML = ""; // Clear existing content
 
-      function hideSpinner() {
-        spinner.style.display = "none";
-      }
+          thumbnails.forEach((sequence) => {
+            console.log("Adding:", sequence);
 
-      function togglePlayPause() {
-        const playPauseButton = document.getElementById("playPauseButton");
-        // Toggle the play/pause state
-        // Toggle the play/pause symbol
-        if (currentVideo.isPlaying) currentVideo.Pause();
-        else currentVideo.Play();
-        SetPlayIcon(currentVideo.isPlaying);
-      }
-      function showControls() {
-        if (currentVideo) {
-          if (playPauseButton.style.opacity != 0) return;
-          playPauseButton.style.opacity = "80%";
-          seekBar.style.opacity = "100%";
-        }
-        HideControlsOnTimeout();
-      }
-      var playPauseAutoHider = null;
-      function HideControlsOnTimeout() {
-        // Auto hide play button now
-        if (playPauseAutoHider) clearTimeout(playPauseAutoHider);
-        playPauseAutoHider = setTimeout(() => {
-          playPauseAutoHider = null;
-          playPauseButton.style.opacity = "0%";
-          seekBar.style.opacity = "0%";
-        }, 3000);
-      }
-      function SetPlayIcon(isPlaying) {
-        playPauseButton.innerHTML = isPlaying ? "&#10074;&#10074;" : "&#9658;";
-        HideControlsOnTimeout();
-      }
+            const thumbnailCol = document.createElement("div");
+            thumbnailCol.className = "col-xs-12 col-sm-6 col-md-4 col-lg-3"; // Adjust as needed
 
-      function showImageFrame(imgData) {
-        imageViewport.src = imgData;
-      }
-      function setSeekIndicator(fraction) {
-        seekBarFill.style.width = `${fraction * 100}%`;
-      }
-      function setBufferIndicator(fraction) {
-        bufferBarFill.style.width = `${fraction * 100}%`;
-        bufferBarFill.style.display = fraction < 1 ? "block" : "none";
-      }
-      function seekFractionChanged(event) {
-        const clickPosition =
-          event.clientX - seekBar.getBoundingClientRect().left;
-        const fraction = clickPosition / seekBar.clientWidth;
-        console.log("Seek to:", fraction);
-        currentVideo.Seek(fraction);
-        setSeekIndicator(fraction);
-        return fraction;
-      }
-      HideControlsOnTimeout();
+            const thumbnailContainer = document.createElement("div");
+            thumbnailContainer.className = "thumbnail-container";
 
-      seekBar.addEventListener("click", seekFractionChanged);
-      playPauseButton.addEventListener("click", togglePlayPause);
-      imagePlayer.addEventListener("mousemove", showControls);
+            const thumbnailImg = document.createElement("img");
+            //thumbnailImg.src = thumbnailSrc;
+            thumbnailImg.className = "thumbnail";
 
-      // Data logic
-      var currentVideo = {};
-      var videoCache = {};
+            thumbnailContainer.appendChild(thumbnailImg);
+            thumbnailCol.appendChild(thumbnailContainer);
+            thumbnailRow.appendChild(thumbnailCol);
 
-      async function LoadVideo(root) {
-        var vid = new Video(root);
-
-        vid.OnFrameLoaded = (frame, progress) => {
-          if (vid == currentVideo) {
-            // show frame
-            setSeekIndicator(progress);
-            showImageFrame(frame.imageData);
-            hideSpinner();
-          }
-        };
-        vid.OnVideoStopped = () => {
-          togglePlayPause(currentVideo.isPlaying);
-        };
-        vid.OnVideoLoading = () => {
-          showSpinner();
-        };
-        vid.OnVideoPlaying = () => {
-          SetPlayIcon(vid.isPlaying);
-        };
-        vid.OnVideoPaused = () => {
-          SetPlayIcon(vid.isPlaying);
-        };
-        vid.OnFrameBuffered = (progress) => {
-          setBufferIndicator(progress);
-        };
-        videoCache[root] = vid;
-        currentVideo = vid;
+            var vid = LoadVideo("gallery/" + sequence + "/");
+            vid.LoadThumbnail().then((img) => {
+              thumbnailImg.src = img;
+            });
+            videoList.push(vid);
+          });
+        });
       }
-      LoadVideo("gallery/s0/");
+      FetchAll();
     </script>
   </body>
 </html>

@@ -41,22 +41,22 @@ class Video {
       }
     });
   }
-  LoadThumbnail(){
+  LoadThumbnail() {
     return new Promise((resolve, reject) => {
-        this.LoadMeta().then(() => {
-            fetch(this.frames[0].file).then(async (resp) => {
-                if (!resp.ok) {
-                  throw new Error("Network response was not ok");
-                }
-                const blob = await resp.blob();
-                const objectURL = URL.createObjectURL(blob);
-      
-                // cache the data for future use
-                this.frames[0].imageData = objectURL;
-                console.log("Cached thumb");
-                resolve(this.frames[0].imageData);
-              });
-        })
+      this.LoadMeta().then(() => {
+        fetch(this.frames[0].file).then(async (resp) => {
+          if (!resp.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const blob = await resp.blob();
+          const objectURL = URL.createObjectURL(blob);
+
+          // cache the data for future use
+          this.frames[0].imageData = objectURL;
+          console.log("Cached thumb");
+          resolve(this.frames[0].imageData);
+        });
+      });
     });
   }
   Seek(fraction) {
@@ -148,7 +148,10 @@ class Video {
       this.hasBuffered = true;
       return;
     }
-    if (this.frames[index].imageData) return;
+    if (this.frames[index].imageData) {
+        this.bufferFrame(index + 1);
+      return;
+    }
     this.downloadFrame(index).then(() => {
       this.OnFrameBuffered(index / (this.frames.length - 1));
       this.bufferFrame(index + 1);

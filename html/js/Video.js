@@ -13,6 +13,7 @@ class Video {
     this.OnVideoLoading = null;
     this.period = 200;
     this.waitTimeOut = 3000;
+    this.ForcedFrame = null;
     this.loop = false;
   }
   //Play Logic
@@ -27,8 +28,7 @@ class Video {
         if (this.LoadingTimeout) clearTimeout(this.LoadingTimeout);
         this.LoadingTimeout = setTimeout(() => {
           this.LoadingTimeout = null;
-          if (this.OnVideoLoading)
-            this.OnVideoLoading();
+          if (this.OnVideoLoading) this.OnVideoLoading();
         }, this.waitTimeOut);
         this.frames[index].OnDataLoaded = () => {
           if (this.LoadingTimeout) clearTimeout(this.LoadingTimeout);
@@ -38,6 +38,21 @@ class Video {
         };
       }
     });
+  }
+  Seek(fraction) {
+    var index = Math.round(fraction * (this.frames.length - 1));
+    if (index < 0) index = 0;
+    if (index >= this.frames.length) index = this.frames.length - 1;
+    console.log("Seek", index);
+    // seek now
+    // we need to stop on
+    if (this.isPlaying) {
+      this.ForcedFrame = index;
+    } else
+      this.GetOrFetchFrame(index).then((frame) => {
+        this.currentIndex = index;
+        this.OnFrameLoaded(frame, index / (this.frames.length - 1));
+      });
   }
   SendFrame(index) {
     console.log("SendFrame:", index);
@@ -59,7 +74,15 @@ class Video {
             this.currentIndex = 0; // for the next time
             this.isPlaying = false;
           }
-        } else this.SendFrame(index + 1);
+        } else {
+          if (this.ForcedFrame) {
+            // seek operation was requested
+            index = this.ForcedFrame - 1;
+            this.ForcedFrame = null;
+          }
+
+          this.SendFrame(index + 1);
+        }
       }, this.period);
     });
   }
@@ -98,8 +121,7 @@ class Video {
     });
   }
   bufferFrame(index) {
-    if (!this.isBuffering)
-        return;
+    if (!this.isBuffering) return;
     if (index >= this.frames.length) {
       this.hasBuffered = true;
       return;
@@ -111,8 +133,8 @@ class Video {
     });
   }
   BeginBuffering() {
-    if(this.isBuffering){
-        return;
+    if (this.isBuffering) {
+      return;
     }
     this.isBuffering = true;
     this.LoadMeta().then(() => {

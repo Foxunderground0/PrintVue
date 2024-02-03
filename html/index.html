@@ -160,8 +160,9 @@
           event.clientX - seekBar.getBoundingClientRect().left;
         const fraction = clickPosition / seekBar.clientWidth;
         console.log("Seek to:", fraction);
+        currentVideo.Seek(fraction);
         setSeekIndicator(fraction);
-        if (!isPlaying) togglePlayPause();
+        //if (!isPlaying) togglePlayPause();
         return fraction;
       }
 

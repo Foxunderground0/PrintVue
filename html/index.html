@@ -42,7 +42,7 @@
       }
       #playPauseButton:active {
         font-size: 26px; /* Adjust the font size for the click state */
-        opacity: 90%; /* Adjust the opacity for the click state */
+        opacity: 100%; /* Adjust the opacity for the click state */
         transition: 0.1s ease; /* Adjust the transition duration for the click state */
       }
 
@@ -57,7 +57,7 @@
         transition: 0.3s ease;
       }
       #seekBar:hover {
-        height: 30px;
+        height: 15px;
         opacity: 100%;
         transition: 0.3s ease;
       }
@@ -142,8 +142,27 @@
         else currentVideo.Play();
         SetPlayIcon(currentVideo.isPlaying);
       }
-      function SetPlayIcon(isPlaying){        
+      function showControls() {
+        if (currentVideo) {
+          if (playPauseButton.style.opacity != 0) return;
+          playPauseButton.style.opacity = "80%";
+          seekBar.style.opacity = "100%";
+        }
+        HideControlsOnTimeout();
+      }
+      var playPauseAutoHider = null;
+      function HideControlsOnTimeout() {
+        // Auto hide play button now
+        if (playPauseAutoHider) clearTimeout(playPauseAutoHider);
+        playPauseAutoHider = setTimeout(() => {
+          playPauseAutoHider = null;
+          playPauseButton.style.opacity = "0%";
+          seekBar.style.opacity = "0%";
+        }, 3000);
+      }
+      function SetPlayIcon(isPlaying) {
         playPauseButton.innerHTML = isPlaying ? "&#10074;&#10074;" : "&#9658;";
+        HideControlsOnTimeout();
       }
 
       function showImageFrame(imgData) {
@@ -165,13 +184,14 @@
         setSeekIndicator(fraction);
         return fraction;
       }
+      HideControlsOnTimeout();
 
       seekBar.addEventListener("click", seekFractionChanged);
       playPauseButton.addEventListener("click", togglePlayPause);
+      imagePlayer.addEventListener("mousemove", showControls);
 
       // Data logic
       var currentVideo = {};
-      var currentIndex = -1;
       var videoCache = {};
 
       async function LoadVideo(root) {
@@ -186,17 +206,17 @@
           }
         };
         vid.OnVideoStopped = () => {
-            togglePlayPause(currentVideo.isPlaying);
+          togglePlayPause(currentVideo.isPlaying);
         };
-        vid.OnVideoLoading = () =>{
-            showSpinner();
-        }
+        vid.OnVideoLoading = () => {
+          showSpinner();
+        };
         vid.OnVideoPlaying = () => {
-            SetPlayIcon(vid.isPlaying);
-        }
+          SetPlayIcon(vid.isPlaying);
+        };
         vid.OnVideoPaused = () => {
-            SetPlayIcon(vid.isPlaying);
-        }
+          SetPlayIcon(vid.isPlaying);
+        };
         vid.OnFrameBuffered = (progress) => {
           setBufferIndicator(progress);
         };

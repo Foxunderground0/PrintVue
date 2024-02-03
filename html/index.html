@@ -14,16 +14,19 @@
       #image-player-container {
         background-color: white;
         height: 300px;
-        width: 100%;
+        width: auto;
         position: fixed;
         box-shadow: 0px 0px 5vh 5vh rgba(255, 255, 255, 0.495);
         z-index: 1000;
-        padding-bottom: 5vh;
         padding-top: 1vh;
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%); /* Center the element horizontally */
       }
       #thumnails-section {
-        height: calc(100vh - 300px);
-        top: 300px;
+        height: calc(100vh - 320px);
+        top: 320px;
         overflow-y: auto; /* Enable vertical scrolling */
         position: fixed;
         padding-top: 5vh;
@@ -93,8 +96,9 @@
           const thumbnailRow = document.getElementById("thumbnailRow");
           thumbnailRow.innerHTML = ""; // Clear existing content
 
+          var firstLoad = true;
           thumbnails.forEach((sequence) => {
-            console.log("Adding:", sequence);
+            //console.log("Adding:", sequence);
 
             const thumbnailCol = document.createElement("div");
             thumbnailCol.className = "col-xs-12 col-sm-6 col-md-4 col-lg-3"; // Adjust as needed
@@ -113,10 +117,17 @@
             var vid = LoadVideo("gallery/" + sequence + "/");
             vid.LoadThumbnail().then((img) => {
               thumbnailImg.src = img;
+
+              console.log("imageViewport.src", imageViewport.src)
+              if (firstLoad) {
+                firstLoad = false;
+                console.log('setting default')
+                currentVideo = vid;
+                imageViewport.src = img;
+              }
             });
             videoList.push(vid);
             vid.thumbnailImg = thumbnailImg;
-
             // Event handlers
             thumbnailImg.addEventListener("click", () => {
               for (v in videoList) {

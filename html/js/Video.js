@@ -180,7 +180,7 @@ class Video {
         if (!res.ok) reject();
         var meta_info = await res.json();
         this.meta = meta_info;
-        console.log("Fetched meta:", meta_info);
+        //console.log("Fetched meta:", meta_info);
         this.frames = [];
         for (
           var i = meta_info.startFrameIndex;
@@ -194,7 +194,7 @@ class Video {
             OnDataLoaded: null,
           });
         }
-        console.log("Init Frames:", this.frames);
+        //console.log("Init Frames:", this.frames);
         this.isLoaded = true;
         resolve();
       });

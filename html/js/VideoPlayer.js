@@ -74,7 +74,7 @@ imagePlayer.addEventListener("mousemove", showControls);
 var currentVideo = {};
 
 function LoadVideo(root) {
-  console.log("Load Vid:", root);
+  //console.log("Load Vid:", root);
   var vid = new Video(root);
 
   vid.OnFrameLoaded = (frame, progress) => {

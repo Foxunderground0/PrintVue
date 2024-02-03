@@ -43,20 +43,22 @@ class Video {
   }
   LoadThumbnail() {
     return new Promise((resolve, reject) => {
-      this.LoadMeta().then(() => {
-        fetch(this.frames[0].file).then(async (resp) => {
-          if (!resp.ok) {
-            throw new Error("Network response was not ok");
-          }
-          const blob = await resp.blob();
-          const objectURL = URL.createObjectURL(blob);
+      setTimeout(() => {
+        this.LoadMeta().then(() => {
+          fetch(this.frames[0].file).then(async (resp) => {
+            if (!resp.ok) {
+              throw new Error("Network response was not ok");
+            }
+            const blob = await resp.blob();
+            const objectURL = URL.createObjectURL(blob);
 
-          // cache the data for future use
-          this.frames[0].imageData = objectURL;
-          console.log("Cached thumb");
-          resolve(this.frames[0].imageData);
+            // cache the data for future use
+            this.frames[0].imageData = objectURL;
+            console.log("Cached thumb");
+            resolve(this.frames[0].imageData);
+          });
         });
-      });
+      }, 2000); // simulate ethumbnail download
     });
   }
   Seek(fraction) {
@@ -149,7 +151,7 @@ class Video {
       return;
     }
     if (this.frames[index].imageData) {
-        this.bufferFrame(index + 1);
+      this.bufferFrame(index + 1);
       return;
     }
     this.downloadFrame(index).then(() => {

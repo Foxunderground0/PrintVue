@@ -29,7 +29,23 @@
         top: 320px;
         overflow-y: auto; /* Enable vertical scrolling */
         position: fixed;
+        width: 100%;
         padding-top: 5vh;
+      }
+
+      #thumbnail-spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        z-index: 2;
+        pointer-events: none;
       }
       /* Additional styling if needed */
       .thumbnail-container {
@@ -38,6 +54,9 @@
         margin-bottom: 10px;
         border-radius: 10px;
         margin-bottom: 20px;
+      }
+      .thumbnail-container-loading {
+        background-color: #c4c4c4;
       }
       .selected-thumbnail {
         box-shadow: 0px 0px 20px 2px rgba(5, 227, 105, 0.8);
@@ -105,29 +124,39 @@
 
             const thumbnailContainer = document.createElement("div");
             thumbnailContainer.className = "thumbnail-container";
+            thumbnailContainer.classList.add("thumbnail-container-loading");
 
             const thumbnailImg = document.createElement("img");
             //thumbnailImg.src = thumbnailSrc;
             thumbnailImg.className = "thumbnail";
+
+            const spinner = document.createElement("div");
+            spinner.id = "thumbnail-spinner";
+            thumbnailContainer.appendChild(spinner);
 
             thumbnailContainer.appendChild(thumbnailImg);
             thumbnailCol.appendChild(thumbnailContainer);
             thumbnailRow.appendChild(thumbnailCol);
 
             var vid = LoadVideo("gallery/" + sequence + "/");
+            vid.thumbnailImg = thumbnailImg;
+            vid.thumbnailContainer = thumbnailContainer;
+            vid.spinner = spinner;
             vid.LoadThumbnail().then((img) => {
               thumbnailImg.src = img;
 
-              console.log("imageViewport.src", imageViewport.src)
+              console.log("imageViewport.src", imageViewport.src);
               if (firstLoad) {
                 firstLoad = false;
-                console.log('setting default')
+                console.log("setting default");
                 currentVideo = vid;
                 imageViewport.src = img;
               }
+              vid.thumbnailContainer.classList.remove("thumbnail-container-loading");
+              vid.spinner.style.display = "none";
             });
             videoList.push(vid);
-            vid.thumbnailImg = thumbnailImg;
+
             // Event handlers
             thumbnailImg.addEventListener("click", () => {
               for (v in videoList) {

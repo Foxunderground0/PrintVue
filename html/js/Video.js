@@ -58,7 +58,7 @@ class Video {
             resolve(this.frames[0].imageData);
           });
         });
-      }, 2000); // simulate ethumbnail download
+      }, 0); // simulate ethumbnail download
     });
   }
   Seek(fraction) {

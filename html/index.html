@@ -142,9 +142,11 @@
         isPlaying = !isPlaying;
         // Toggle the play/pause symbol
         playPauseButton.innerHTML = isPlaying ? "&#10074;&#10074;" : "&#9658;";
+        if (isPlaying) currentVideo.Play();
+        else currentVideo.Pause();
       }
 
-      function showImageFrame(imgData){
+      function showImageFrame(imgData) {
         imageViewport.src = imgData;
       }
       function setSeekIndicator(fraction) {
@@ -152,7 +154,7 @@
       }
       function setBufferIndicator(fraction) {
         bufferBarFill.style.width = `${fraction * 100}%`;
-        bufferBarFill.style.display = fraction < 1 ? 'block':'none';
+        bufferBarFill.style.display = fraction < 1 ? "block" : "none";
       }
       function seekFractionChanged(event) {
         const clickPosition =
@@ -182,12 +184,15 @@
             showImageFrame(frame.imageData);
           }
         };
-        vid.OnFrameBuffered = (progress)=>{
-            setBufferIndicator(progress);
-        }
+        vid.OnVideoStopped = () => {
+          if (isPlaying) togglePlayPause();
+          isPlaying = false;
+        };
+        vid.OnFrameBuffered = (progress) => {
+          setBufferIndicator(progress);
+        };
         videoCache[root] = vid;
         currentVideo = vid;
-        vid.Play(videoCache[root]);
       }
       LoadVideo("gallery/s0/");
     </script>

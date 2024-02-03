@@ -3,10 +3,15 @@ class Video {
     this.root = root;
     this.isLoaded = false;
     this.hasBuffered = false;
+    this.isBuffering = false;
     this.OnFrameBuffered = null;
     this.OnFrameLoaded = null;
     this.currentIndex = 0;
-    this.isPlaying = 0;
+    this.isPlaying = false;
+    this.LoadingTimeout = null;
+    this.OnVideoStopped = null;
+    this.period = 200;
+    this.loop = false;
   }
   //Play Logic
   GetOrFetchFrame(index) {
@@ -17,7 +22,13 @@ class Video {
       } else {
         // all we can do is wait for now.
         console.log("waiting on:", index);
+        if (this.LoadingTimeout) clearTimeout(this.LoadingTimeout);
+        this.LoadingTimeout = setTimeout(() => {
+          this.LoadingTimeout = null;
+        }, 2000);
         this.frames[index].OnDataLoaded = () => {
+          if (this.LoadingTimeout) clearTimeout(this.LoadingTimeout);
+          this.LoadingTimeout = null;
           console.log("Wait ended on:", index);
           resolve(this.frames[index]);
         };
@@ -25,16 +36,37 @@ class Video {
     });
   }
   SendFrame(index) {
-    this.GetOrFetchFrame(index).then(frame => {
-      if (this.OnFrameLoaded)
+    console.log("SendFrame:", index);
+    this.GetOrFetchFrame(index).then((frame) => {
+      if (!isPlaying) {
+        // playback was stopped
+        return;
+      }
+      if (this.OnFrameLoaded) {
+        this.currentIndex = index;
         this.OnFrameLoaded(frame, index / (this.frames.length - 1));
-      this.SendFrame(index + 1);
+      }
+      setTimeout(() => {
+        if (index + 1 >= this.frames.length) {
+          // video has ended
+          if (this.loop) this.SendFrame(0);
+          else {
+            if (this.OnVideoStopped) this.OnVideoStopped();
+            this.currentIndex = 0; // for the next time
+            this.isPlaying = false;
+          }
+        } else this.SendFrame(index + 1);
+      }, this.period);
     });
   }
   Pause() {
-    i;
+    if (!this.isPlaying) return;
+    this.isPlaying = false;
   }
   Play() {
+    console.log("Play while:", this.isPlaying);
+    if (this.isPlaying) return;
+    this.isPlaying = true;
     this.LoadMeta().then(() => {
       this.BeginBuffering();
       this.SendFrame(this.currentIndex);
@@ -43,11 +75,6 @@ class Video {
   // Buffer Logic
   downloadFrame(index) {
     return new Promise((resolve, reject) => {
-      if (index >= this.frames.length) {
-        this.hasBuffered = true;
-        console.log("All Loaded");
-        return;
-      }
       setTimeout(() => {
         fetch(this.frames[index].file).then(async (resp) => {
           if (!resp.ok) {
@@ -67,22 +94,37 @@ class Video {
     });
   }
   bufferFrame(index) {
+    if (!this.isBuffering)
+        return;
+    if (index >= this.frames.length) {
+      this.hasBuffered = true;
+      return;
+    }
+    if (this.frames[index].imageData) return;
     this.downloadFrame(index).then(() => {
       this.OnFrameBuffered(index / (this.frames.length - 1));
       this.bufferFrame(index + 1);
     });
   }
   BeginBuffering() {
-    console.log("Start Video: ", this);
-    if (!this.isLoaded) {
-      this.LoadMeta().then(() => {
-        this.bufferFrame(0);
-      });
-    } else this.bufferFrame(0);
+    if(this.isBuffering){
+        return;
+    }
+    this.isBuffering = true;
+    this.LoadMeta().then(() => {
+      this.bufferFrame(0);
+    });
+  }
+  PauseBuffering() {
+    this.isBuffering = false;
   }
   LoadMeta() {
     return new Promise((resolve, reject) => {
-      if (this.isLoaded) resolve();
+      if (this.isLoaded) {
+        console.log("Already laoded");
+        resolve();
+        return;
+      }
       fetch(this.root + "seq_info.json").then(async (res) => {
         if (!res.ok) reject();
         var meta_info = await res.json();

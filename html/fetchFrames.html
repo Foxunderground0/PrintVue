@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PrintVue Gallery</title>
+  </head>
+  <body>
+    <h1>PrintVue Gallery</h1>
+    <div id="video-container">
+      <video style="width: 100%" id="video" controls></video>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const video = document.getElementById("video");
+
+        // Replace 'photo_directory' with the path where you save your photos.
+        const photoDirectory = "gallery/s0";
+        const photoFileExtension = ".jpg"; // Adjust the file extension if needed.
+
+        // Fetch the list of photos in the directory.
+        fetchPhotoList().then((photoList) => {
+          if (photoList.length > 0) {
+            // Set the first photo as the video poster.
+            video.poster = `${photoDirectory}/${photoList[0]}`;
+
+            // Load the photos into the video element.
+            photoList.forEach((photo) => {
+              console.log("Adding Photo: ", photo);
+              const source = document.createElement("source");
+              source.src = `${photoDirectory}/${photo}`;
+              source.type = `image/${photoFileExtension.replace(".", "")}`;
+              video.appendChild(source);
+            });
+            video.preload = "auto";
+            // Start playing the video.
+            //video.play();
+          }
+        });
+
+        // Function to fetch the list of photos in the directory.
+        async function fetchPhotoList() {
+          const response = await fetch(`${photoDirectory}/seq_info.json`); // Replace with your server-side script.
+          const data = await response.json();
+          console.log("Sequnce Info: ", data);
+          photoList = [];
+          for (var i = data.startFrameIndex; i <= data.endFrameIndex; i++) {
+            var fName = data.seed + i + data.extension;
+            photoList.push(fName);
+          }
+          return photoList;
+        }
+      });
+    </script>
+  </body>
+</html>

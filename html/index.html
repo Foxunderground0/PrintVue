@@ -63,9 +63,21 @@
       }
 
       #seekBarFill {
+        position: absolute;
+        top: 0;
+        left: 0;
         height: 100%;
         width: 0%;
-        background-color: #0682e875;
+        background-color: #038bfa;
+        transition: width 0.1s ease;
+      }
+      #bufferBarFill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background-color: #e8e406d7;
         transition: width 0.1s ease;
       }
       #spinner {
@@ -99,10 +111,11 @@
       <img id="imageViewport" src="" alt="Image Player" />
       <button id="playPauseButton">&#9658;</button>
       <div id="seekBar">
+        <div id="bufferBarFill"></div>
         <div id="seekBarFill"></div>
       </div>
     </div>
-
+    <script src="js/Video.js"></script>
     <script>
       // UI Logic
       const imagePlayer = document.getElementById("imagePlayer");
@@ -110,6 +123,7 @@
       const playPauseButton = document.getElementById("playPauseButton");
       const seekBar = document.getElementById("seekBar");
       const seekBarFill = document.getElementById("seekBarFill");
+      const bufferBarFill = document.getElementById("bufferBarFill");
       const spinner = document.getElementById("spinner");
 
       function showSpinner() {
@@ -130,8 +144,15 @@
         playPauseButton.innerHTML = isPlaying ? "&#10074;&#10074;" : "&#9658;";
       }
 
+      function showImageFrame(imgData){
+        imageViewport.src = imgData;
+      }
       function setSeekIndicator(fraction) {
         seekBarFill.style.width = `${fraction * 100}%`;
+      }
+      function setBufferIndicator(fraction) {
+        bufferBarFill.style.width = `${fraction * 100}%`;
+        bufferBarFill.style.display = fraction < 1 ? 'block':'none';
       }
       function seekFractionChanged(event) {
         const clickPosition =
@@ -147,25 +168,26 @@
       playPauseButton.addEventListener("click", togglePlayPause);
 
       // Data logic
-      var currentVideo = "";
+      var currentVideo = {};
+      var currentIndex = -1;
       var videoCache = {};
-      async function LoadVideo(root){
-        fetch(root + "seq_info.json").then(async res =>{
-            var meta_info = await res.json();
-            video = {};
-            video.meta = meta_info;
-            video.meta.length = meta_info.endFrameIndex - meta_info.startFrameIndex + 1;
-            
-            video.frames = [];
-            for (var i = meta_info.startFrameIndex; i < meta_info.endFrameIndex; i++){
-                video.frames.push({
-                    file: root +  meta_info.seed + i + meta_info.extension,
-                    imageData: null
-                });
-            }
-            videoCache[root] = video;
-            console.log("Videos:", videoCache);
-        })
+
+      async function LoadVideo(root) {
+        var vid = new Video(root);
+
+        vid.OnFrameLoaded = (frame, progress) => {
+          if (vid == currentVideo) {
+            // show frame
+            setSeekIndicator(progress);
+            showImageFrame(frame.imageData);
+          }
+        };
+        vid.OnFrameBuffered = (progress)=>{
+            setBufferIndicator(progress);
+        }
+        videoCache[root] = vid;
+        currentVideo = vid;
+        vid.Play(videoCache[root]);
       }
       LoadVideo("gallery/s0/");
     </script>

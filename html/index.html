@@ -134,7 +134,6 @@
         spinner.style.display = "none";
       }
 
-      showSpinner();
       let isPlaying = false; // Flag to track play/pause state
       function togglePlayPause() {
         const playPauseButton = document.getElementById("playPauseButton");
@@ -182,12 +181,16 @@
             // show frame
             setSeekIndicator(progress);
             showImageFrame(frame.imageData);
+            hideSpinner();
           }
         };
         vid.OnVideoStopped = () => {
           if (isPlaying) togglePlayPause();
           isPlaying = false;
         };
+        vid.OnVideoLoading = () =>{
+            showSpinner();
+        }
         vid.OnFrameBuffered = (progress) => {
           setBufferIndicator(progress);
         };

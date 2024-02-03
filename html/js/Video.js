@@ -10,7 +10,9 @@ class Video {
     this.isPlaying = false;
     this.LoadingTimeout = null;
     this.OnVideoStopped = null;
+    this.OnVideoLoading = null;
     this.period = 200;
+    this.waitTimeOut = 3000;
     this.loop = false;
   }
   //Play Logic
@@ -25,7 +27,9 @@ class Video {
         if (this.LoadingTimeout) clearTimeout(this.LoadingTimeout);
         this.LoadingTimeout = setTimeout(() => {
           this.LoadingTimeout = null;
-        }, 2000);
+          if (this.OnVideoLoading)
+            this.OnVideoLoading();
+        }, this.waitTimeOut);
         this.frames[index].OnDataLoaded = () => {
           if (this.LoadingTimeout) clearTimeout(this.LoadingTimeout);
           this.LoadingTimeout = null;

@@ -1,7 +1,7 @@
 #imagePlayer {
   position: relative;
-  width: 400px;
-  height: 300px;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border: 1px solid #ccc;;
 }
@@ -9,40 +9,6 @@
 #imageViewport {
   width: 100%;
   height: 100%;
-}
-
-#playPauseButton {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  font-size: 24px;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 10px 20px;
-  border: none;
-  outline: none;
-  border-radius: 6px;
-  display: block;
-  /* Hidden by default */
-  opacity: 70%;
-  transition: 0.15s ease;
-}
-
-#playPauseButton:hover {
-  font-size: 30px;
-  transition: 0.15s ease;
-  opacity: 100%;
-}
-
-#playPauseButton:active {
-  font-size: 26px;
-  /* Adjust the font size for the click state */
-  opacity: 100%;
-  /* Adjust the opacity for the click state */
-  transition: 0.1s ease;
-  /* Adjust the transition duration for the click state */
 }
 
 #seekBar {
@@ -62,24 +28,13 @@
   transition: 0.3s ease;
 }
 
-#seekBarFill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 0%;
-  background-color: #038bfa;
-  transition: width 0.1s ease;
-}
-
 #bufferBarFill {
   position: absolute;
-  top: 0;
+  top: 0%;
   left: 0;
   height: 100%;
   width: 0%;
   background-color: #e8e406d7;
-  transition: width 0.1s ease;
 }
 
 #spinner {

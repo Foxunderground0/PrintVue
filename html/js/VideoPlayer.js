@@ -16,6 +16,12 @@ function setBufferIndicator(fraction) {
   if (fraction == 1){
   }
 }
+function setEncodeIndicator(fraction) {
+  bufferBarFill.style.width = `${fraction * 100}%`;
+  bufferBarFill.style.display = fraction < 1 ? "block" : "none";
+  if (fraction == 1){
+  }
+}
 
 // Data logic
 var currentVideo = {};
@@ -30,6 +36,11 @@ function LoadVideo(root) {
   vid.OnFrameBuffered = (progress) => {
     if (vid !== currentVideo) return;
     setBufferIndicator(progress);
+  };
+
+  vid.OnFrameEncoded = (progress) => {
+    if (vid !== currentVideo) return;
+    setEncodeIndicator(progress);
   };
 
   if (!currentVideo) currentVideo = vid;

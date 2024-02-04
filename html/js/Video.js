@@ -1,3 +1,7 @@
+
+canvas = document.createElement("canvas");
+ctx = canvas.getContext("2d");
+
 class Video {
   constructor(root) {
     this.root = root;
@@ -16,11 +20,33 @@ class Video {
     this.period = 200;
     this.waitTimeOut = 1000;
     this.ForcedFrame = null;
-    this.loop = false;
+    this.loop = false;    
+  }
+  // Function to convert data URL to RGBA frame data
+  dataURLtoFrame(dataURL) {
+    const img = new Image();
+    img.src = dataURL;
+
+    return new Promise((resolve) => {
+      img.onload = function () {
+        console.log(canvas);
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Get RGBA frame data
+        //const imageData = ctx.getImageData(0, 0, img.width, img.height).data;
+
+        // Convert to Whammy.js compatible format (array of Uint8Arrays)
+        //const whammyFrame = new Uint8Array(imageData.buffer);
+        resolve(canvas);
+      };
+    });
   }
   GetImageData(dataURL) {
     return new Promise((resolve, reject) => {
       const img = new Image();
+      img.src = dataURL;
       img.onload = () => {
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
@@ -29,7 +55,11 @@ class Video {
         ctx.drawImage(img, 0, 0);
         const imageData = ctx.getImageData(0, 0, img.width, img.height);
 
-        resolve(imageData);
+        // Convert to Whammy.js compatible format (array of Uint8Arrays)
+        //  const whammyFrame = new Uint8Array(imageData.buffer);
+        resolve(canvas);
+        //resolve(imageData);
+        //resolve(img);
       };
       img.src = dataURL;
     });
@@ -44,6 +74,32 @@ class Video {
     //delete link;
   }
   async Download() {
+    var encoder = new Whammy.Video(30, 1);
+    for (const f in this.frames) {
+      //console.log("f: ", this.frames[f].imageData);
+      var i = await this.dataURLtoFrame(this.frames[f].imageData);
+      //console.log("add: ", i);
+      encoder.add(i);
+    }
+    encoder.compile(false, (blob) => {
+      console.log("Callback called:", blob);
+
+      // Create a download link
+      const downloadLink = document.createElement("a");
+      downloadLink.href = URL.createObjectURL(blob);
+      downloadLink.download = "output-video.webm";
+
+      document.getElementById("vPlayer").src = URL.createObjectURL(blob);
+      // Trigger the download
+      downloadLink.click();
+
+      // Clean up
+      URL.revokeObjectURL(downloadLink.href);
+    });
+
+    console.log("The end");
+  }
+  async Download2() {
     var frames = [];
     for (var f in this.frames) {
       frames.push(await this.GetImageData(this.frames[f].imageData));
@@ -62,15 +118,17 @@ class Video {
 
     var chunks = [];
     mediaRecorder.ondataavailable = function (e) {
-        console.log("pushing chunk:", e);
+      console.log("pushing chunk:", e.data);
       chunks.push(e.data);
     };
 
     mediaRecorder.onstop = function (e) {
+      console.log("Stopped");
       var blob = new Blob(chunks, { type: "video/mp4" }); // other types are available such as 'video/webm' for instance, see the doc for more info
       chunks = [];
       var videoURL = URL.createObjectURL(blob);
 
+      document.getElementById("vPlayer").src = URL.createObjectURL(blob);
       console.log("Video data url ready", videoURL);
 
       function downloadURI(uri, name) {
@@ -88,16 +146,19 @@ class Video {
 
     mediaRecorder.start();
 
-    function pushFrame(index){
-        console.log('Push', index);
-        if (index >= 100){
-            mediaRecorder.stop();
-            return;
-        }
-        videoStream.getVideoTracks()[0].requestFrame();
-        setTimeout(() => {
-            pushFrame(index + 1);
-        }, 10);
+    function pushFrame(index) {
+      console.log("Push", index);
+      console.log("Isolation", videoStream.getVideoTracks()[0].readyState);
+      if (index >= frames.length) {
+        console.log("Stopping recorder");
+        mediaRecorder.stop();
+        return;
+      }
+      ctx.drawImage(frames[index], 0, 0);
+      videoStream.getVideoTracks()[0].requestFrame();
+      setTimeout(() => {
+        pushFrame(index + 1);
+      }, 100);
     }
     pushFrame(0);
     console.log("The end");
@@ -139,6 +200,7 @@ class Video {
 
             // cache the data for future use
             this.frames[0].imageData = objectURL;
+            this.frames[0].blob = blob;
             console.log("Cached thumb");
             resolve(this.frames[0].imageData);
           });
@@ -221,6 +283,7 @@ class Video {
 
           // cache the data for future use
           this.frames[index].imageData = objectURL;
+          this.frames[index].blob = blob;
           //console.log("Cached:", index);
           if (this.frames[index].OnDataLoaded)
             this.frames[index].OnDataLoaded();

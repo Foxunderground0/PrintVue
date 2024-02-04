@@ -28,9 +28,15 @@
         height: calc(100vh - 320px);
         top: 320px;
         overflow-y: auto; /* Enable vertical scrolling */
-        position: fixed;
+        /*position: fixed;*/
         width: 100%;
         padding-top: 5vh;
+      }
+      #vPlayer{
+        margin-top: 300px;
+        height: 300px;
+        width: 100%;
+
       }
 
       #thumbnail-spinner {
@@ -107,6 +113,7 @@
         </div>
       </div>
     </div>
+    <video id="vPlayer" controls></video>
     <div id="thumnails-section" class="container-fluid">
       <div class="row" id="thumbnailRow">
         <!-- Thumbnails will be dynamically added here -->
@@ -117,6 +124,7 @@
     <script src="js/VideoPlayer.js"></script>
     <script src="js/recordrtc/RecordRTC.js"></script>
     <script src="js/recordrtc/RecordRTC.min.js"></script>
+    <script src="js/whammy.js"></script>
     <script>
       //LoadVideo("gallery/s0/");
       var videoList = [];

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M3D PrintVue</title>
+    <link rel="stylesheet" href="./css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./css/VideoPlayer.css" />
+    <link rel="stylesheet" href="./css/gallery.css" />
+  </head>
+
+  <body>
+    <script src="js/ccapture/CCapture.js"></script>
+    <script src="js/ccapture/webm-writer-0.2.0.js"></script>
+
+    <!-- Bootstrap navigation bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <a class="navbar-brand" href="#">
+        <img
+          src="./resources/Logo_Final_Transperant_300x300.png"
+          alt="M3D Logo"
+          height="30"
+          class="d-inline-block align-top"
+        />
+      </a>
+
+      <!-- Navbar toggler for responsive design -->
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-toggle="collapse"
+        data-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </nav>
+
+    <h1 class="display-2 text-center" style="margin-left: 5%">M3D PrintVue</h1>
+    <div class="row" style="margin: 2%">
+      <div class="col-md-6">
+        <video id="vPlayer" controls></video>
+        <div id="buffer-bar">
+          <div id="bufferBarFill"></div>
+        </div>
+        <button
+          id="submitBtn"
+          type="button"
+          class="btn btn-primary mt-3"
+          style="margin-left: 0%; margin-bottom: 20px; width: 99%"
+        >
+          Live View
+        </button>
+      </div>
+      <div class="col-md-6">
+        <div id="thumnails-section" class="container-fluid">
+          <div class="row" id="thumbnailRow">
+            <!-- Thumbnails will be dynamically added here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="./js/program.js"></script>
+    <script src="js/Video.js"></script>
+    <script src="js/VideoPlayer.js"></script>
+    <footer class="text-center text-white" style="background-color: #f1f1f1">
+      <div
+        class="text-center text-dark p-3"
+        style="background-color: rgba(0, 0, 0, 0.2)"
+      >
+        © 2023 Copyright:
+        <a class="text-dark" href="https://markhor3d.com/">Markhor3D.com</a>
+      </div>
+      <!-- Copyright -->
+    </footer>
+  </body>
+</html>

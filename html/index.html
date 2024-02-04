@@ -13,25 +13,20 @@
     <style>
       #player-section {
         background-color: white;
-        height: 300px;
-        width: 90%;
-        margin-left: 5%;
-        margin-right: 5%;
-        position: fixed;
         box-shadow: 0px 0px 5vh 5vh rgba(255, 255, 255, 0.495);
         z-index: 1000;
+        margin-top: 12.5vh;
+        height: 75vh;
         top: 0;
+        padding-left: 5%;
       }
       #thumnails-section {
-        height: calc(100vh - 320px);
-        top: 320px;
         overflow-y: auto; /* Enable vertical scrolling */
-        position: fixed;
         width: 100%;
         padding-top: 5vh;
       }
       #vPlayer {
-        height: 300px;
+        height: 100%;
         width: 100%;
       }
 
@@ -56,7 +51,6 @@
       /* Additional styling if needed */
       .thumbnail-container {
         width: 100%;
-        height: 30vh;
         padding-left: 0px;
         margin-bottom: 10px;
         border-radius: 10px;
@@ -76,33 +70,26 @@
         margin-bottom: 10px;
         border-radius: 10px;
         transition: 0.2s ease;
-      }
-      .thumbnail:hover {
-        transition: 0.2s ease;
-        width: 102%;
-        margin-left: -1%;
-        border-radius: 5px;
-      }
-      .thumbnail:active {
-        transition: 0.2s ease;
-        width: 101%;
-        margin-left: -0.5%;
+        cursor: pointer;
       }
     </style>
   </head>
   <body>
-    <div id="player-section">
-      <video id="vPlayer" controls></video>
-      <div id="bufferBar">
-        <div id="bufferBarFill"></div>
+    <div class="row">
+      <div id="player-section" class="col-sm-6">
+        <video id="vPlayer" controls></video>
+        <div id="bufferBar">
+          <div id="bufferBarFill"></div>
+        </div>
+      </div>
+      <div class="col-sm-6">
+        <div id="thumnails-section" class="container-fluid">
+          <div class="row" id="thumbnailRow">
+            <!-- Thumbnails will be dynamically added here -->
+          </div>
+        </div>
       </div>
     </div>
-    <div id="thumnails-section" class="container-fluid">
-      <div class="row" id="thumbnailRow">
-        <!-- Thumbnails will be dynamically added here -->
-      </div>
-    </div>
-
     <script src="js/Video.js"></script>
     <script src="js/VideoPlayer.js"></script>
     <script src="js/recordrtc/RecordRTC.js"></script>
@@ -126,7 +113,7 @@
             //console.log("Adding:", sequence);
 
             const thumbnailCol = document.createElement("div");
-            thumbnailCol.className = "col-xs-12 col-sm-6 col-md-4 col-lg-3"; // Adjust as needed
+            thumbnailCol.className = "col-xs-12 col-sm-6 col-md-6 col-lg-6"; // Adjust as needed
             thumbnailCol.classList.add("no-padding");
             const thumbnailContainer = document.createElement("div");
             thumbnailContainer.className = "thumbnail-container";

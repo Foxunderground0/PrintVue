@@ -22,7 +22,6 @@ class Video {
 
     return new Promise((resolve) => {
       img.onload = function () {
-        console.log(canvas);
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
@@ -43,7 +42,7 @@ class Video {
     var capturer = new CCapture({
       format: "webm",
       framerate: 30,
-      verbose: true,
+      //verbose: true,
     });
     capturer.start();
     for (const f in this.frames) {

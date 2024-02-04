@@ -1,4 +1,3 @@
-
 canvas = document.createElement("canvas");
 ctx = canvas.getContext("2d");
 
@@ -20,7 +19,7 @@ class Video {
     this.period = 200;
     this.waitTimeOut = 1000;
     this.ForcedFrame = null;
-    this.loop = false;    
+    this.loop = false;
   }
   // Function to convert data URL to RGBA frame data
   dataURLtoFrame(dataURL) {
@@ -73,7 +72,46 @@ class Video {
     document.body.removeChild(link);
     //delete link;
   }
+
   async Download() {
+    // Create a capturer that exports a WebM video
+    var capturer = new CCapture({
+      format: "webm",
+      framerate: 30,
+      verbose: true,
+    });
+    capturer.start();
+    for (const f in this.frames) {
+      //console.log("f: ", this.frames[f].imageData);
+      var i = await this.dataURLtoFrame(this.frames[f].imageData);
+      //console.log("add: ", i);
+      capturer.capture(i);
+    }
+    capturer.stop();
+
+    // default save, will download automatically a file called {name}.extension (webm/gif/tar)
+    //capturer.save();
+
+    // custom save, will get a blob in the callback
+    capturer.save(function (blob) {
+      
+        console.log("Callback called:", blob);
+
+        // Create a download link
+        const downloadLink = document.createElement("a");
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = "output-video.webm";
+  
+        document.getElementById("vPlayer").src = URL.createObjectURL(blob);
+        // Trigger the download
+        downloadLink.click();
+  
+        // Clean up
+        URL.revokeObjectURL(downloadLink.href);
+    });
+    console.log("The end");
+  }
+  async Download1() {
     var encoder = new Whammy.Video(30, 1);
     for (const f in this.frames) {
       //console.log("f: ", this.frames[f].imageData);

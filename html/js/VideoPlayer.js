@@ -81,13 +81,13 @@ function LoadVideo(root) {
   //console.log("Load Vid:", root);
   var vid = new Video(root);
 
-  vid.OnFrameLoaded = (frame, progress) => {
-    if (vid !== currentVideo) return;
-    // show frame
-    setSeekIndicator(progress);
-    showImageFrame(frame.imageData);
-    hideSpinner();
-  };
+//   vid.OnFrameLoaded = (frame, progress) => {
+//     if (vid !== currentVideo) return;
+//     // show frame
+//     setSeekIndicator(progress);
+//     showImageFrame(frame.imageData);
+//     hideSpinner();
+//   };
   vid.OnVideoEncoded = (src) =>{
     document.getElementById("vPlayer").src = src;
   }

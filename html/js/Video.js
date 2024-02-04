@@ -23,9 +23,8 @@ class Video {
     this.Video = null;
     this.loop = false;
   }
-  VideoReady(src){
-    if(this.OnVideoEncoded)
-    this.OnVideoEncoded(src);
+  VideoReady(src) {
+    if (this.OnVideoEncoded) this.OnVideoEncoded(src);
   }
   // Function to convert data URL to RGBA frame data
   dataURLtoFrame(dataURL) {
@@ -101,9 +100,8 @@ class Video {
 
     // custom save, will get a blob in the callback
     capturer.save(function (blob) {
-      
-        console.log("Callback called:", blob);
-        video.VideoReady(URL.createObjectURL(blob));
+      console.log("Callback called:", blob);
+      video.VideoReady(URL.createObjectURL(blob));
     });
     console.log("The end");
   }
@@ -338,7 +336,9 @@ class Video {
       return;
     }
     this.downloadFrame(index).then(() => {
-      this.OnFrameBuffered(index / (this.frames.length - 1));
+      if (this.OnFrameBuffered) {
+        this.OnFrameBuffered(index / (this.frames.length - 1));
+      }
       this.bufferFrame(index + 1);
     });
   }

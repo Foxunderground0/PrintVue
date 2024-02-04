@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="css/VideoPlayer.css" />
 
     <style>
-      #image-player-container {
+      #player-section {
         background-color: white;
         height: 300px;
         width: auto;
@@ -28,15 +28,13 @@
         height: calc(100vh - 320px);
         top: 320px;
         overflow-y: auto; /* Enable vertical scrolling */
-        /*position: fixed;*/
+        position: fixed;
         width: 100%;
         padding-top: 5vh;
       }
-      #vPlayer{
-        margin-top: 300px;
+      #vPlayer {
         height: 300px;
         width: 100%;
-
       }
 
       #thumbnail-spinner {
@@ -95,43 +93,12 @@
     </style>
   </head>
   <body>
-    <div id="image-player-container">
-      <!-- <div id="imagePlayer">
-        <div id="spinner" class="hidden"></div>
-        <img id="imageViewport" src="" alt="Image Player" />
-        <button id="playPauseButton">&#9658;</button>
-        <div
-          class="download-icon"
-          id="download-icon"
-          onclick="downloadCurrent()"
-        >
-          Download
-        </div>
-        <div id="seekBar">
-          <div id="bufferBarFill"></div>
-          <div id="seekBarFill"></div>
-        </div>
-      </div> -->
-      
-      <div id="imagePlayer">
-        <div id="spinner" class="hidden"></div>
-        <img id="imageViewport" src="" alt="Image Player" />
-        <button id="playPauseButton">&#9658;</button>
-        <div
-          class="download-icon"
-          id="download-icon"
-          onclick="downloadCurrent()"
-        >
-          Download
-        </div>
-        <div id="seekBar">
-          <div id="bufferBarFill"></div>
-          <div id="seekBarFill"></div>
-        </div>
+    <div id="player-section">
+      <video id="vPlayer" controls></video>
+      <div id="bufferBar">
+        <div id="bufferBarFill"></div>
       </div>
-      
     </div>
-    <video id="vPlayer" controls></video>
     <div id="thumnails-section" class="container-fluid">
       <div class="row" id="thumbnailRow">
         <!-- Thumbnails will be dynamically added here -->
@@ -186,12 +153,10 @@
             vid.LoadThumbnail().then((img) => {
               thumbnailImg.src = img;
 
-              //console.log("imageViewport.src", imageViewport.src);
               if (firstLoad) {
                 firstLoad = false;
                 console.log("setting default");
                 currentVideo = vid;
-                imageViewport.src = img;
               }
               vid.thumbnailContainer.classList.remove(
                 "thumbnail-container-loading"
@@ -209,16 +174,10 @@
               }
               thumbnailImg.classList.add("selected-thumbnail");
               currentVideo = vid;
-              downloadIcon.style.opacity = currentVideo.hasBuffered
-                ? "100%"
-                : "0%";
               vid.Play();
             });
           });
         });
-      }
-      function downloadCurrent() {
-        currentVideo.Download();
       }
       FetchAll();
     </script>

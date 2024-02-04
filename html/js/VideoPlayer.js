@@ -88,6 +88,9 @@ function LoadVideo(root) {
     showImageFrame(frame.imageData);
     hideSpinner();
   };
+  vid.OnVideoEncoded = (src) =>{
+    document.getElementById("vPlayer").src = src;
+  }
   vid.OnVideoStopped = () => {
     if (vid !== currentVideo) return;
     togglePlayPause(currentVideo.isPlaying);

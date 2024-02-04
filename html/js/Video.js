@@ -16,10 +16,16 @@ class Video {
     this.OnVideoLoading = null;
     this.OnVideoPlaying = null;
     this.OnVideoPaused = null;
+    this.OnVideoEncoded = null;
     this.period = 200;
     this.waitTimeOut = 1000;
     this.ForcedFrame = null;
+    this.Video = null;
     this.loop = false;
+  }
+  VideoReady(src){
+    if(this.OnVideoEncoded)
+    this.OnVideoEncoded(src);
   }
   // Function to convert data URL to RGBA frame data
   dataURLtoFrame(dataURL) {
@@ -73,7 +79,8 @@ class Video {
     //delete link;
   }
 
-  async Download() {
+  async CreateVideo() {
+    var video = this;
     // Create a capturer that exports a WebM video
     var capturer = new CCapture({
       format: "webm",
@@ -96,18 +103,7 @@ class Video {
     capturer.save(function (blob) {
       
         console.log("Callback called:", blob);
-
-        // Create a download link
-        const downloadLink = document.createElement("a");
-        downloadLink.href = URL.createObjectURL(blob);
-        downloadLink.download = "output-video.webm";
-  
-        document.getElementById("vPlayer").src = URL.createObjectURL(blob);
-        // Trigger the download
-        downloadLink.click();
-  
-        // Clean up
-        URL.revokeObjectURL(downloadLink.href);
+        video.VideoReady(URL.createObjectURL(blob));
     });
     console.log("The end");
   }
@@ -334,6 +330,7 @@ class Video {
     if (!this.isBuffering) return;
     if (index >= this.frames.length) {
       this.hasBuffered = true;
+      this.CreateVideo();
       return;
     }
     if (this.frames[index].imageData) {

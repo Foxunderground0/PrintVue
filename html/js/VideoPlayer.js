@@ -55,6 +55,10 @@ function setSeekIndicator(fraction) {
 function setBufferIndicator(fraction) {
   bufferBarFill.style.width = `${fraction * 100}%`;
   bufferBarFill.style.display = fraction < 1 ? "block" : "none";
+  if (fraction == 1){
+    const downloadIcon = document.getElementById("download-icon");
+    downloadIcon.style.opacity = "100%";
+  }
 }
 function seekFractionChanged(event) {
   const clickPosition = event.clientX - seekBar.getBoundingClientRect().left;

@@ -18,11 +18,96 @@ class Video {
     this.ForcedFrame = null;
     this.loop = false;
   }
+  GetImageData(dataURL) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+
+        resolve(imageData);
+      };
+      img.src = dataURL;
+    });
+  }
+  downloadURI(uri, name) {
+    var link = document.createElement("a");
+    link.download = name;
+    link.href = uri;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    //delete link;
+  }
+  async Download() {
+    var frames = [];
+    for (var f in this.frames) {
+      frames.push(await this.GetImageData(this.frames[f].imageData));
+    }
+
+    // Create an in-memory canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = frames[0].width;
+    canvas.height = frames[0].height;
+    const ctx = canvas.getContext("2d");
+
+    // if you want to manually trigger the frames, that can be useful if you struggle to create a real-time animation:
+    var videoStream = canvas.captureStream(30);
+
+    var mediaRecorder = new MediaRecorder(videoStream);
+
+    var chunks = [];
+    mediaRecorder.ondataavailable = function (e) {
+        console.log("pushing chunk:", e);
+      chunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = function (e) {
+      var blob = new Blob(chunks, { type: "video/mp4" }); // other types are available such as 'video/webm' for instance, see the doc for more info
+      chunks = [];
+      var videoURL = URL.createObjectURL(blob);
+
+      console.log("Video data url ready", videoURL);
+
+      function downloadURI(uri, name) {
+        var link = document.createElement("a");
+        link.download = name;
+        link.href = uri;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        //delete link;
+      }
+
+      downloadURI(videoURL, "MyVideo.mp4");
+    };
+
+    mediaRecorder.start();
+
+    function pushFrame(index){
+        console.log('Push', index);
+        if (index >= 100){
+            mediaRecorder.stop();
+            return;
+        }
+        videoStream.getVideoTracks()[0].requestFrame();
+        setTimeout(() => {
+            pushFrame(index + 1);
+        }, 10);
+    }
+    pushFrame(0);
+    console.log("The end");
+  }
+
   //Play Logic
   GetOrFetchFrame(index) {
     return new Promise((resolve, reject) => {
       if (this.frames[index].imageData) {
-        console.log("Returning cached frame: ", index);
+        //console.log("Returning cached frame: ", index);
         resolve(this.frames[index]);
       } else {
         // all we can do is wait for now.
@@ -77,7 +162,7 @@ class Video {
       });
   }
   SendFrame(index) {
-    console.log("SendFrame:", index);
+    //console.log("SendFrame:", index);
     this.GetOrFetchFrame(index).then((frame) => {
       if (!this.isPlaying) {
         // playback was stopped
@@ -136,12 +221,12 @@ class Video {
 
           // cache the data for future use
           this.frames[index].imageData = objectURL;
-          console.log("Cached:", index);
+          //console.log("Cached:", index);
           if (this.frames[index].OnDataLoaded)
             this.frames[index].OnDataLoaded();
           resolve();
         });
-      }, 100); // simulate a delay
+      }, 0); // simulate a delay
     });
   }
   bufferFrame(index) {

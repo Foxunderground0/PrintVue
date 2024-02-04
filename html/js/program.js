@@ -1,3 +1,19 @@
+function beginLiveView() {
+  switchPreviewType(true);
+  document.getElementById("liveView").src ="./live-cam.jpg";
+}
+
+function switchPreviewType(showLive) {
+  if (showLive) {
+    document.getElementById("vPlayer").classList.add("hidden");
+    document.getElementById("liveView").classList.remove("hidden");
+    document.getElementById("liveView").src = "";
+  } else {
+    document.getElementById("vPlayer").classList.remove("hidden");
+    document.getElementById("liveView").classList.add("hidden");
+  }
+}
+
 //LoadVideo("gallery/s0/");
 var videoList = [];
 const downloadIcon = document.getElementById("download-icon");

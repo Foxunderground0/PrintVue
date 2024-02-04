@@ -42,14 +42,16 @@
     <div class="row" style="margin: 2%">
       <div class="col-md-6">
         <video id="vPlayer" controls></video>
+        <img id="liveView" class="hidden" controls></video>
         <div id="buffer-bar">
           <div id="bufferBarFill"></div>
         </div>
         <button
-          id="submitBtn"
+          id="show-live-view"
           type="button"
           class="btn btn-primary mt-3"
           style="margin-left: 0%; margin-bottom: 20px; width: 99%"
+          onclick="beginLiveView();"
         >
           Live View
         </button>

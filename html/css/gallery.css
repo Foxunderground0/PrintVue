@@ -21,6 +21,15 @@
     width: 99%;
 }
 
+#liveView {
+    height: 80%;
+    width: 99%;
+    object-fit: contain;
+}
+.hidden{
+    display: none;
+}
+
 #thumbnail-spinner {
     position: absolute;
     top: 50%;

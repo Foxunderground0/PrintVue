@@ -1,6 +1,6 @@
 #include <DNSServer.h>
 #include <WiFi.h>
-//#include <AsyncTCP.h>
+// #include <AsyncTCP.h>
 #include "Camera.h"
 #include "FS.h"     // SD Card ESP32
 #include "SD_MMC.h" // SD Card ESP32
@@ -9,14 +9,13 @@
 #include <ESPAsyncWebServer.h>
 #include <ESP-FTP-Server-Lib.h>
 #include <FTPFilesystem.h>
+#include <ArduinoJson.h>
 
-#define FTP_USER     "ftp"
+#define FTP_USER "ftp"
 #define FTP_PASSWORD "ftp"
 
 FTPServer ftp;
 AsyncWebServer server = AsyncWebServer(80);
-
-
 
 void Error(int period, int onFor = 50)
 {
@@ -38,7 +37,7 @@ void setup()
 {
   Serial.begin(115200);
   delay(100);
-  
+
   Serial.println("Starting SD Card");
   if (!SD_MMC.begin("/sdcard", true))
   {
@@ -73,9 +72,45 @@ void setup()
   ftp.addFilesystem("SD", &SD_MMC);
   ftp.begin();
 
+  server.on("/gallery/sequences.json", HTTP_GET, [](AsyncWebServerRequest *request) {
+    Serial.println("Get sequences");
+    DynamicJsonDocument doc(1024);  // Allocate memory for JSON document
+    JsonArray list = doc.createNestedArray("list");
+
+    String rootDir = String("/PrintVue/www/gallery");
+    File root = SD_MMC.open(rootDir);  // Open root directory
+    if (!root) {
+      Serial.println("Failed to open /www directory");
+      request->send(500, "text/plain", "Error accessing directory");
+      return;
+    }
+
+    File file;
+    while (file = root.openNextFile()) {
+      if (file.isDirectory()) {
+        String dirName = file.name();
+        if (dirName.startsWith("s") && dirName.length() > 1 && isDigit(dirName.charAt(1))) {
+          // Check for seq_info.json inside the directory
+          String fName = rootDir + "/" + String(file.name()) + "/seq_info.json";
+          file = SD_MMC.open(fName);
+          if (file) {
+            Serial.println("Adding: " + dirName);
+            file.close();  // Close seq_info.json file
+            list.add(dirName);  // Add directory name to JSON list
+          }
+        }
+      }
+      file.close();
+    }
+
+    root.close();
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response); });
+
   server.serveStatic("/", SD_MMC, "/PrintVue/www");
   server.begin();
-  
 }
 void loop()
 {

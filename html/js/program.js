@@ -1,6 +1,6 @@
 function beginLiveView() {
   switchPreviewType(true);
-  document.getElementById("liveView").src ="./live-cam.jpg";
+  document.getElementById("liveView").src = "./live-cam.jpg";
 }
 
 function switchPreviewType(showLive) {
@@ -22,12 +22,11 @@ function FetchAll() {
     var thumbnails = (await resp.json()).list;
 
     const thumbnailRow = document.getElementById("thumbnailRow");
-    thumbnailRow.innerHTML = ""; // Clear existing content
 
     var firstLoad = true;
-    for (var seqI in thumbnails){
-      sequence = thumbnails[seqI];
-      
+    thumbnails.forEach((sequence) => {
+      //console.log("Adding:", sequence);
+
       const thumbnailCol = document.createElement("div");
       thumbnailCol.className = "col-xs-12 col-sm-6 col-md-6 col-lg-6"; // Adjust as needed
       thumbnailCol.classList.add("no-padding");
@@ -51,16 +50,17 @@ function FetchAll() {
       vid.thumbnailImg = thumbnailImg;
       vid.thumbnailContainer = thumbnailContainer;
       vid.spinner = spinner;
-      var img = await vid.LoadThumbnail(); 
-      thumbnailImg.src = img;
+      vid.LoadThumbnail().then((img) => {
+        thumbnailImg.src = img;
 
-      if (firstLoad) {
-        firstLoad = false;
-        console.log("setting default");
-        currentVideo = vid;
-      }
-      vid.thumbnailContainer.classList.remove("thumbnail-container-loading");
-      vid.spinner.style.display = "none";
+        if (firstLoad) {
+          firstLoad = false;
+          console.log("setting default");
+          currentVideo = vid;
+        }
+        vid.thumbnailContainer.classList.remove("thumbnail-container-loading");
+        vid.spinner.style.display = "none";
+      });
       videoList.push(vid);
 
       // Event handlers
@@ -72,7 +72,14 @@ function FetchAll() {
         currentVideo = vid;
         vid.Load();
       });
-    }
+    });
+    var msg = document.getElementById("thumbnail-loading-msg");
+    console.log("msg", msg);
+    msg.innerHTML = thumbnails.length > 0 ? "":"No time lapses have been recorded yet.";
+    console.log('Thumnails Length: ', thumbnails.length);
   });
 }
-FetchAll();
+
+setTimeout(() => {
+  FetchAll();
+}, 0);

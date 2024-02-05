@@ -6,7 +6,7 @@
 #include "SD_MMC.h" // SD Card ESP32
 #include <EEPROM.h> // read and write from flash memory
 #include "CamWebServer.h"
-
+#include <ESPAsyncWebServer.h>
 #include <ESP-FTP-Server-Lib.h>
 #include <FTPFilesystem.h>
 
@@ -14,6 +14,9 @@
 #define FTP_PASSWORD "ftp"
 
 FTPServer ftp;
+AsyncWebServer server = AsyncWebServer(80);
+
+
 
 void Error(int period, int onFor = 50)
 {
@@ -70,7 +73,8 @@ void setup()
   ftp.addFilesystem("SD", &SD_MMC);
   ftp.begin();
 
-  Serial.println("...---'''---...---'''---...---'''---...");
+  server.serveStatic("/", SD_MMC, "/PrintVue/www");
+  server.begin();
   
 }
 void loop()

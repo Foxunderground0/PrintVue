@@ -4,20 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>M3D PrintVue</title>
-    <link rel="stylesheet" href="./css/bootstrap.min.css" />
+    <!-- <link rel="stylesheet" href="./css/bootstrap.min.css" />
     <link rel="stylesheet" href="./css/VideoPlayer.css" />
-    <link rel="stylesheet" href="./css/gallery.css" />
+    <link rel="stylesheet" href="./css/gallery.css" /> -->
   </head>
 
   <body>
-    <script src="js/ccapture/CCapture.js"></script>
-    <script src="js/ccapture/webm-writer-0.2.0.js"></script>
+    <!-- <script src="./js/ccapture/CCapture.js"></script>
+    <script src="./js/ccapture/webm-writer-0.2.0.js"></script> -->
 
     <!-- Bootstrap navigation bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
       <a class="navbar-brand" href="#">
         <img
-          src="./resources/Logo_Final_Transperant_300x300.png"
+          src="./resources/m3d-logo.png"
           alt="M3D Logo"
           height="30"
           class="d-inline-block align-top"
@@ -64,9 +64,73 @@
         </div>
       </div>
     </div>
-    <script src="./js/program.js"></script>
-    <script src="js/Video.js"></script>
-    <script src="js/VideoPlayer.js"></script>
+    <script type="module">
+      
+      function downloadAsString(url, onProgress) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+
+          xhr.open("GET", url, true);
+          xhr.responseType = "text";
+
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              resolve(xhr.responseText);
+            } else {
+              reject(`Failed to download script. Status: ${xhr.status}`);
+            }
+          };
+
+          xhr.onerror = () => {
+            reject("Error occurred during script download.");
+          };
+          xhr.onloadstart = function () {
+          };
+
+          xhr.send();
+        });
+      }
+
+      function injectScript(scriptString) {
+        //console.log('Injecting script:', scriptString);
+        const script = document.createElement("script");
+        script.textContent = scriptString;
+        document.body.appendChild(script);
+      }
+      function injectStyle(cssString) {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = cssString;
+        document.head.appendChild(styleElement);
+      }
+
+      function appendScript(script, onProgress){
+        return new Promise((resolve, reject) => {
+          downloadAsString(script, onProgress)
+          .then((str) => {
+            injectScript(str);
+          resolve();
+          })
+        })
+      }
+      function appendStyle(style, onProgress){
+        return new Promise((resolve, reject) => {
+          downloadAsString(style, onProgress)
+          .then((str) => {injectStyle(str);resolve()})
+        })
+      }
+      
+      await appendStyle("./css/bootstrap.min.css");
+      await appendStyle("./css/video-player.css");
+      await appendStyle("./css/gallery.css");
+      await appendScript("./js/video.js");
+      await appendScript("./js/video-player.js");
+      await appendScript("./js/ccapture/CCapture.js");
+      await appendScript("./js/ccapture/webm-writer-0.2.0.js");
+      await appendScript("./js/program.js");
+    </script>
+    <!-- <script src="./js/program.js"></script> -->
+    <!-- <script src="js/Video.js"></script> -->
+    <!-- <script src="js/VideoPlayer.js"></script> -->
     <footer class="text-center text-white" style="background-color: #f1f1f1">
       <div
         class="text-center text-dark p-3"

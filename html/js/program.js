@@ -1,16 +1,21 @@
 function beginLiveView() {
   switchPreviewType(true);
-  document.getElementById("liveView").src = "./live-cam.jpg";
 }
-
+function EndLiveView() {
+  switchPreviewType(false);
+}
+var currentViewIsLive = false;
 function switchPreviewType(showLive) {
   if (showLive) {
     document.getElementById("vPlayer").classList.add("hidden");
     document.getElementById("liveView").classList.remove("hidden");
     document.getElementById("liveView").src = "";
+    currentViewIsLive = true;
+    keepImageFresh();
   } else {
     document.getElementById("vPlayer").classList.remove("hidden");
     document.getElementById("liveView").classList.add("hidden");
+    currentViewIsLive = false;
   }
 }
 
@@ -24,7 +29,8 @@ function FetchAll() {
     const thumbnailRow = document.getElementById("thumbnailRow");
 
     var firstLoad = true;
-    thumbnails.forEach((sequence) => {
+    for (var seqI in thumbnails) {
+      var sequence = thumbnails[seqI];
       //console.log("Adding:", sequence);
 
       const thumbnailCol = document.createElement("div");
@@ -50,17 +56,16 @@ function FetchAll() {
       vid.thumbnailImg = thumbnailImg;
       vid.thumbnailContainer = thumbnailContainer;
       vid.spinner = spinner;
-      vid.LoadThumbnail().then((img) => {
-        thumbnailImg.src = img;
+      var img = await vid.LoadThumbnail();
+      thumbnailImg.src = img;
 
-        if (firstLoad) {
-          firstLoad = false;
-          console.log("setting default");
-          currentVideo = vid;
-        }
-        vid.thumbnailContainer.classList.remove("thumbnail-container-loading");
-        vid.spinner.style.display = "none";
-      });
+      if (firstLoad) {
+        firstLoad = false;
+        console.log("setting default");
+        currentVideo = vid;
+      }
+      vid.thumbnailContainer.classList.remove("thumbnail-container-loading");
+      vid.spinner.style.display = "none";
       videoList.push(vid);
 
       // Event handlers
@@ -69,17 +74,56 @@ function FetchAll() {
           videoList[v].thumbnailImg.classList.remove("selected-thumbnail");
         }
         thumbnailImg.classList.add("selected-thumbnail");
+        EndLiveView();
         currentVideo = vid;
         vid.Load();
       });
-    });
+    }
     var msg = document.getElementById("thumbnail-loading-msg");
     console.log("msg", msg);
-    msg.innerHTML = thumbnails.length > 0 ? "":"No time lapses have been recorded yet.";
-    console.log('Thumnails Length: ', thumbnails.length);
+    msg.innerHTML =
+      thumbnails.length > 0 ? "" : "No time lapses have been recorded yet.";
+    console.log("Thumnails Length: ", thumbnails.length);
   });
 }
 
 setTimeout(() => {
   FetchAll();
 }, 0);
+
+var inCamFetch = false;
+function keepImageFresh() {
+  if (inCamFetch) return;
+  inCamFetch = true;
+  fetchCamImage().then((img) => {
+    inCamFetch = false;
+    console.log("Setting image: ", img);
+    document.getElementById("liveView").src = img;
+    if (currentViewIsLive) keepImageFresh();
+  });
+}
+function fetchCamImage() {
+  return new Promise((resolve, reject) => {
+    console.log("Fetch cam image");
+    fetch("./refresh-cam", { method: "POST" })
+      .then(async (resp) => {
+        console.log("Cam image fresh");
+        // fetch image now
+        await fetch("./live-cam.jpg")
+          .then(async (resp) => {
+            console.log("Got cam Image: ", resp);
+            const blob = await resp.blob();
+            const objectURL = URL.createObjectURL(blob);
+            resolve(objectURL);
+          })
+          .catch((reason) => {
+            console.log("Couldn't fetch image");
+            //reject(reason);
+          });
+      })
+      .catch((reason) => {
+        console.log("Post failed");
+        //reject(reason);
+      });
+  });
+}

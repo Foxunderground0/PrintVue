@@ -1,79 +1,257 @@
-#include <ArduinoBLE.h>
 #include <BLEDevice.h>
-#include <BLEServer.h>
+#include <BLEUtils.h>
 #include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
+#include <Arduino.h>
+// Define the name of the BLE device you want to connect to
+const char *bleServerName = "M3D Enabler";
+bool printHasStarted = false;
+bool supportsManualShots = false;
+float lastZ = -1000;
 
-// Device name and service UUID
-const char* deviceName = "YOUR_DEVICE_NAME";
-const char* serviceUUID = "8e088cd2-8100-11ee-b9d1-0242ac120002";
+// Activate notify
+const uint8_t notificationOn[] = {0x1, 0x0};
+const uint8_t notificationOff[] = {0x0, 0x0};
 
-// Characteristic UUIDs
-const char* positionXCharUUID = "8e088cd2-7101-11ee-b9d1-0242ac120002";
-const char* positionYCharUUID = "8e088cd2-7102-11ee-b9d1-0242ac120002";
-const char* positionZCharUUID = "8e088cd2-7103-11ee-b9d1-0242ac120002";
-const char* positionECharUUID = "8e088cd2-7104-11ee-b9d1-0242ac120002";
-const char* temperatureCharUUID = "8e088cd2-7105-11ee-b9d1-0242ac120002";
-const char* printingStatusCharUUID = "8e088cd2-7106-11ee-b9d1-0242ac120002";
-
-// Function prototypes
-void setup();
-void loop();
-void onResult(BLEAdvertisedDevice device);
-void connectToDevice(BLEClient* pClient, BLEAddress address);
-void onCharacteristicChanged(BLERemoteCharacteristic* characteristic);
-
-// Global variables to store characteristic pointers
-BLEFloatCharacteristic* positionXChar = nullptr;
-BLEFloatCharacteristic* positionYChar = nullptr;
-BLEFloatCharacteristic* positionZChar = nullptr;
-BLEFloatCharacteristic* positionEChar = nullptr;
-BLEFloatCharacteristic* temperatureChar = nullptr;
-BLEIntCharacteristic* printingStatusChar = nullptr;
-
-
-void setup() {
-  Serial.begin(115200);
-
-  // Start BLE
-  BLEDevice::init("");
-  BLEScan* pBLEScan = BLEDevice::getScan();
-
-  // Set scan filters based on device name (if applicable)
-  if (deviceName) {
-    pBLEScan->setFilterName(deviceName);
-    pBLEScan->setActiveScan(true); // Active scan for faster results
+static void positionZNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic,
+                                    uint8_t *pData, size_t length, bool isNotify)
+{
+  // Process the change
+  float positionZ = *reinterpret_cast<float *>(pData);
+  Serial.print("Position Z:");
+  Serial.println(positionZ);
+  if (supportsManualShots)
+  {
+    Serial.println("Skipping auto shot in favor of manual");
   }
-
-  // Start scan and handle callbacks
-  BLECallback callback = new MyScanCallback();
-  pBLEScan->onResults(callback);
-  pBLEScan->start(5); // Scan for 5 seconds
+  if (!printHasStarted)
+  {
+    if (positionZ - lastZ <= 0.6 && positionZ - lastZ >= 0.05)
+    {
+      Serial.println("[Shot] Persistent Z change. We might have skipped Begin");
+    }
+    else
+      Serial.println("Skipping auto shot because print hasn't started.");
+    lastZ = positionZ;
+  }
+}
+static void requestShotNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic,
+                                      uint8_t *pData, size_t length, bool isNotify)
+{
+  // Process the change
+  float positionZ = *reinterpret_cast<float *>(pData);
+  Serial.print("[Shot] Request shot @ position Z:");
+  Serial.println(positionZ);
+  supportsManualShots = true;
+}
+static void printingStatusNotifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic,
+                                         uint8_t *pData, size_t length, bool isNotify)
+{
+  //
+  int printingStatus = *reinterpret_cast<int *>(pData);
+  Serial.print("Printing Status:");
+  if (printingStatus < 0)
+  {
+    Serial.println("End of print");
+    supportsManualShots = false;
+    lastZ = -1000;
+  }
+  else
+  {
+    lastZ = 0;
+    Serial.print("Print started @");
+    printHasStarted = true;
+  }
+  Serial.println(printingStatus);
 }
 
-void loop() {
-  // Process incoming data and display values
-  if (positionXChar && positionYChar && positionZChar && positionEChar && temperatureChar && printingStatusChar) {
-    float positionX = positionXChar->readValue();
-    float positionY = positionYChar->readValue();
-    float positionZ = positionZChar->readValue();
-    float positionE = positionEChar->readValue();
-    float temperature = temperatureChar->readValue();
-    int printingStatus = printingStatusChar->readValue();
+// create service and characteristics:
+static BLEUUID bmeServiceUUID("8e088cd2-8100-11ee-b9d1-0242ac120002");
+static BLEUUID positionXCharactristicUUID("8e088cd2-7101-11ee-b9d1-0242ac120002");
+static BLEUUID positionYCharactristicUUID("8e088cd2-7102-11ee-b9d1-0242ac120002");
+static BLEUUID positionZCharactristicUUID("8e088cd2-7103-11ee-b9d1-0242ac120002");
+static BLEUUID positionECharactristicUUID("8e088cd2-7104-11ee-b9d1-0242ac120002");
+static BLEUUID requestShotCharactristicUUID("8e088cd2-7105-11ee-b9d1-0242ac120002");
+static BLEUUID temperatureCharactristicUUID("8e088cd2-7106-11ee-b9d1-0242ac120002");
+static BLEUUID printingStatusCharactristicUUID("8e088cd2-7107-11ee-b9d1-0242ac120002");
 
-    Serial.print("X: ");
-    Serial.print(positionX);
-    Serial.print(", Y: ");
-    Serial.print(positionY);
-    Serial.print(", Z: ");
-    Serial.print(positionZ);
-    Serial.print(", E: ");
-    Serial.print(positionE);
-    Serial.print(", Temperature: ");
-    Serial.print(temperature);
-    Serial.print(", Printing Status: ");
-    Serial.println(printingStatus);
-  } else {
-    Serial.println("Waiting for characteristics...");
+// create service and characteristics:
+BLERemoteCharacteristic *positionXCharactristic;
+BLERemoteCharacteristic *positionYCharactristic;
+BLERemoteCharacteristic *positionZCharactristic;
+BLERemoteCharacteristic *positionECharactristic;
+BLERemoteCharacteristic *requestShotCharactristic;
+BLERemoteCharacteristic *temperatureCharactristic;
+BLERemoteCharacteristic *printingStatusCharactristic;
+
+// Flags stating if should begin connecting and if the connection is up
+static boolean doConnect = false;
+static boolean bleConnected = false;
+
+// Address of the peripheral device. Address will be found during scanning...
+static BLEAddress *pServerAddress;
+
+class MyClientCallback : public BLEClientCallbacks
+{
+  void onConnect(BLEClient *pClient)
+  {
+    Serial.println("Connected to BLE device");
+  }
+
+  void onDisconnect(BLEClient *pClient)
+  {
+    Serial.println("Disconnected from BLE device");
+    doConnect = true;
+    // Set a flag or perform other actions to handle disconnection
+  }
+};
+// Connect to the BLE Server that has the name, Service, and Characteristics
+bool connectToServer(BLEAddress pAddress)
+{
+  Serial.println("Connect to server");
+  BLEClient *pClient = BLEDevice::createClient();
+  pClient->setClientCallbacks(new MyClientCallback());
+
+  // Connect to the remove BLE Server.
+  pClient->connect(pAddress);
+  Serial.println(" - Connected to server");
+
+  // Obtain a reference to the service we are after in the remote BLE server.
+  BLERemoteService *pRemoteService = pClient->getService(bmeServiceUUID);
+  if (pRemoteService == nullptr)
+  {
+    Serial.print("Failed to find our service UUID: ");
+    Serial.println(bmeServiceUUID.toString().c_str());
+    return (false);
+  }
+
+  // Obtain a reference to the characteristics in the service of the remote BLE server.
+  positionXCharactristic = pRemoteService->getCharacteristic(positionXCharactristicUUID);
+  positionYCharactristic = pRemoteService->getCharacteristic(positionYCharactristicUUID);
+  positionZCharactristic = pRemoteService->getCharacteristic(positionZCharactristicUUID);
+  positionECharactristic = pRemoteService->getCharacteristic(positionECharactristicUUID);
+  requestShotCharactristic = pRemoteService->getCharacteristic(requestShotCharactristicUUID);
+  temperatureCharactristic = pRemoteService->getCharacteristic(temperatureCharactristicUUID);
+  printingStatusCharactristic = pRemoteService->getCharacteristic(printingStatusCharactristicUUID);
+
+  if (positionXCharactristic == nullptr)
+  {
+    Serial.print("Failed to find positionXCharactristic UUID");
+    return false;
+  }
+  if (positionYCharactristic == nullptr)
+  {
+    Serial.print("Failed to find positionYCharactristic UUID");
+    return false;
+  }
+  if (positionZCharactristic == nullptr)
+  {
+    Serial.print("Failed to find positionZCharactristic UUID");
+    return false;
+  }
+  if (positionECharactristic == nullptr)
+  {
+    Serial.print("Failed to find positionECharactristic UUID");
+    return false;
+  }
+  if (temperatureCharactristic == nullptr)
+  {
+    Serial.print("Failed to find temperatureCharactristic UUID");
+    return false;
+  }
+  if (printingStatusCharactristic == nullptr)
+  {
+    Serial.print("Failed to find printingStatusCharactristic UUID");
+    return false;
+  }
+  if (positionXCharactristic == nullptr || positionYCharactristic == nullptr || positionZCharactristic == nullptr || positionECharactristic == nullptr || temperatureCharactristic == nullptr || printingStatusCharactristic == nullptr)
+  {
+    Serial.print("Failed to find our characteristic UUID");
+    return false;
+  }
+  Serial.println(" - Found our characteristics");
+
+  // Assign callback functions for the Characteristics
+  positionZCharactristic->registerForNotify(positionZNotifyCallback);
+  printingStatusCharactristic->registerForNotify(printingStatusNotifyCallback);
+  requestShotCharactristic->registerForNotify(requestShotNotifyCallback);
+  return true;
+}
+// Callback function that gets called, when another device's advertisement has been received
+class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
+{
+  void onResult(BLEAdvertisedDevice advertisedDevice)
+  {
+    Serial.print("On Result: ");
+    if (String(advertisedDevice.getName().c_str()) == bleServerName)
+    {
+      Serial.print("[");
+      Serial.print(advertisedDevice.getName().c_str());
+      Serial.print("] == [");
+      Serial.print(bleServerName);
+      Serial.print("]");                                              // Check if the name of the advertiser matches
+      advertisedDevice.getScan()->stop();                             // Scan can be stopped, we found what we are looking for
+      pServerAddress = new BLEAddress(advertisedDevice.getAddress()); // Address of advertiser is the one we need
+      doConnect = true;                                               // Set indicator, stating that we are ready to connect
+      Serial.println("Device found. Connecting!");
+    }
+    else
+    {
+      Serial.print("[");
+      Serial.print(advertisedDevice.getName().c_str());
+      Serial.print("] != [");
+      Serial.print(bleServerName);
+      Serial.println("]");
+    }
+  }
+};
+void BeginScan()
+{
+  Serial.println("Begin Scan");
+  // Retrieve a Scanner and set the callback we want to use to be informed when we
+  // have detected a new device.  Specify that we want active scanning and start the
+  // scan to run for one hour
+  BLEDevice::init("");
+  auto pBLEScan = BLEDevice::getScan(); // create new scan
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setActiveScan(true); // active scan uses more power, but get results faster
+  pBLEScan->setInterval(100);
+  pBLEScan->setWindow(99); // less or equal setInterval value
+  pBLEScan->start(3600);
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("Starting Arduino BLE Client application...");
+
+  // Init BLE device
+  BLEDevice::init("");
+  BeginScan();
+}
+
+void loop()
+{
+  // If the flag "doConnect" is true then we have scanned for and found the desired
+  // BLE Server with which we wish to connect.  Now we connect to it.  Once we are
+  // connected we set the connected flag to be true.
+  if (doConnect == true)
+  {
+    if (connectToServer(*pServerAddress))
+    {
+      Serial.println("We are now connected to the BLE Server.");
+      // Activate the Notify property of each Characteristic
+      positionZCharactristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
+      printingStatusCharactristic->getDescriptor(BLEUUID((uint16_t)0x2902))->writeValue((uint8_t *)notificationOn, 2, true);
+      bleConnected = true;
+      doConnect = false;
+    }
+    else
+    {
+      Serial.println("We have failed to connect to the server; Restart your device to scan for nearby BLE server again.");
+      bleConnected = false;
+      doConnect = true;
+    }
   }
 }
 
@@ -224,12 +402,12 @@ void loop() {
 //   server.serveStatic("/live-cam.jpg", SD_MMC, tempCamImageName);
 //   server.on("/refresh-cam", HTTP_POST, [](AsyncWebServerRequest *req)
 //             {
-//     camImageIsFresh = false; 
+//     camImageIsFresh = false;
 //     while (!camImageIsFresh) //
 //     {
 //       delay(10);
 //     }
-    
+
 //     req->send(200); });
 //   // server.on("/cam-image.jpg", HTTP_GET, camImageHandler);
 
@@ -311,7 +489,7 @@ void loop() {
 //     }
 //     else
 //     {
-//       Serial.println("Probably a manual move, beginning or of print"); 
+//       Serial.println("Probably a manual move, beginning or of print");
 //     }
 //   }
 //   else

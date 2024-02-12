@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <BluetoothSerial.h>
+//#include <BluetoothSerial.h>
 
 bool printHasStarted = false;
 bool supportsManualShots = false;
@@ -16,7 +16,10 @@ static void positionZNotifyCallback(float positionZ)
     Serial.println(positionZ);
     if (!printHasStarted)
     {
-        if (positionZ - lastZ <= 0.6 && positionZ - lastZ >= 0.05)
+        if (supportsManualShots){
+            Serial.println("Skipping auto shot in favor of manual");
+        }
+        else if (positionZ - lastZ <= 0.6 && positionZ - lastZ >= 0.05)
         {
             Serial.println("[Shot] Persistent Z change. We might have missed Begin");
             printHasStarted = true;
@@ -68,34 +71,36 @@ static void printingStatusNotifyCallback(int printingStatus)
 }
 
 
-BluetoothSerial btSerial;
-void bluetoothSetup()
+//BluetoothSerial comSerial;
+#define comSerial Serial
+void commSetup()
 {
-    Serial.println("Test with bluetooth serial");
-    btSerial.begin("PrintVue BT", true);
-    btSerial.connect("M3D Enabler PV");
+    Serial.println("Test with serial comm");
+    //comSerial.begin(115200, SERIAL_8N1, 2);
+    // comSerial.begin("PrintVue BT", true);
+    // comSerial.connect("M3D Enabler PV");
     // Connect to the Bluetooth server
-    Serial.print("Connecting to server: ");
-    Serial.println("M3D Enabler PV");
+    // Serial.print("Connecting to server: ");
+    // Serial.println("M3D Enabler PV");
 }
 
-void bluetoothLoop()
+void commLoop()
 {
-    if (!btSerial.connected())
-    {
-        while (!btSerial.connected())
-        {
-            Serial.print(".");
-            delay(500);
-            btSerial.connect("M3D Enabler PV");
-        }
-        Serial.println("Connected!");
-    }
+    // if (!comSerial.connected())
+    // {
+    //     while (!comSerial.connected())
+    //     {
+    //         Serial.print(".");
+    //         delay(500);
+    //         comSerial.connect("M3D Enabler PV");
+    //     }
+    //     Serial.println("Connected!");
+    // }
 
-    if (btSerial.available())
+    if (comSerial.available())
     {
-        String com = btSerial.readStringUntil('\n');
-        Serial.print("BT: ");
+        String com = comSerial.readStringUntil('\n');
+        Serial.print("Comm: ");
         Serial.println(com);
         if(com.startsWith("begin")){
             printingStatusNotifyCallback(com.substring(6).toInt());

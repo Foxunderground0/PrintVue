@@ -24,23 +24,19 @@
 AsyncWebServer server = AsyncWebServer(80);
 int currentSeqIndex = 0;
 int nextShotIndex = 0;
-void bluetoothLoop();
-void bluetoothSetup();
+void commLoop();
+void commSetup();
 
-void Error(int period, int onFor = 50)
+void LEDBlinkLoop(long period)
 {
-
-  const int freq = 5000;
-  const int ledChannel = LEDC_CHANNEL_6;
-  ledcSetup(ledChannel, freq, 8); // vacate pin 4
-  ledcAttachPin(4, ledChannel);   // vacate pin 4
-  ledcWrite(ledChannel, 0);       // vacate pin 4
-  while (true)
-  {
-    ledcWrite(ledChannel, 255);
-    delay(onFor);
-    ledcWrite(ledChannel, 0);
-    delay(period);
+	int v = 255 - abs((((long)millis() % period) * 510) / period  - 255); // 0 > 255 > 0
+	analogWrite(33, v);
+}
+void Error(int period)
+{
+  while(1){
+    LEDBlinkLoop(period);
+    delay(1);
   }
 }
 
@@ -108,13 +104,13 @@ void setup()
   Serial.begin(115200);
   delay(100);
 
-  bluetoothSetup();
+  commSetup();
   
   Serial.println("Starting SD Card");
   if (!SD_MMC.begin("/sdcard", true))
   {
     Serial.println("SD Card Mount Failed");
-    Error(1000);
+    Error(500);
   }
   else
   {
@@ -122,7 +118,7 @@ void setup()
     if (cardType == CARD_NONE)
     {
       Serial.println("No SD Card attached");
-      Error(1500);
+      Error(1000);
     }
     else
     {
@@ -147,7 +143,7 @@ void setup()
   }
 
   if (!CameraSetup())
-    Error(500);
+    Error(1500);
   Serial.println("Camera present");
   // start FTP
 
@@ -304,7 +300,7 @@ void appendSequence()
 void loop()
 {
   //ftp.handle();
-  bluetoothLoop();
+  commLoop();
   if (!camImageIsFresh)
   {
     Serial.println("Cam Image not fresh");
@@ -325,6 +321,7 @@ void loop()
     {
       Serial.print("Save photo failed: ");
       Serial.println(shotName);
+      takeSequenceShotRequest = false;
       return;
     }
     nextShotIndex++;

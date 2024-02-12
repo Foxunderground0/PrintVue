@@ -18,14 +18,42 @@ function switchPreviewType(showLive) {
     currentViewIsLive = false;
   }
 }
-
+function delay(time) {
+  return new Promise(resolve => setTimeout(resolve, time));
+}
+function fetchWithRetry(url, maxRetries = 10, retryDelay = 500) {
+  return new Promise(async (resolve, reject) => {
+    let retries = 0;
+    while (retries < maxRetries) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          console.log('Response ok:', response)
+          resolve(response);
+          return; // exit the function after resolving the promise
+        } else {
+          throw new Error('Request failed with status ' + response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error.message);
+        retries++;
+        if (retries < maxRetries) {
+          console.log(`Retrying in ${retryDelay / 1000} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } else {
+          reject(new Error('Maximum retries exceeded'));
+        }
+      }
+    }
+  });
+}
 //LoadVideo("gallery/s0/");
 var videoList = [];
 const downloadIcon = document.getElementById("download-icon");
 function FetchAll() {
-  fetch("gallery/sequences.json").then(async (resp) => {
+  fetchWithRetry("gallery/sequences.json").then(async (resp) => {
     var thumbnails = (await resp.json()).list;
-
+    await delay(1000);
     const thumbnailRow = document.getElementById("thumbnailRow");
 
     var firstLoad = true;

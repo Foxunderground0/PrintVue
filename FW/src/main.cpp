@@ -7,8 +7,8 @@
 #include <EEPROM.h> // read and write from flash memory
 #include "CamWebServer.h"
 #include <ESPAsyncWebServer.h>
-//#include <ESP-FTP-Server-Lib.h>
-//#include <FTPFilesystem.h>
+#include <ESP-FTP-Server-Lib.h>
+#include <FTPFilesystem.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
 
@@ -20,7 +20,7 @@
 #define wwwRoot systemRoot "/www"
 #define galleryRoot wwwRoot "/gallery"
 
-// FTPServer ftp;
+FTPServer ftp;
 AsyncWebServer server = AsyncWebServer(80);
 int currentSeqIndex = 0;
 int nextShotIndex = 0;
@@ -82,11 +82,13 @@ void SaveSetting(String key, String value)
 
 void resumeSession()
 {
+  Serial.println("Resume Session");
   currentSeqIndex = ReadSetting("current seq", "1").toInt();
   nextShotIndex = ReadSetting("next shot", "1").toInt();
 }
 void saveSession()
 {
+  Serial.println("Save Session");
   SaveSetting("current seq", String(currentSeqIndex));
   SaveSetting("next shot", String(nextShotIndex));
 }
@@ -152,9 +154,9 @@ void setup()
   server.serveStatic("/", SD_MMC, "www");
   // server.on("/live-cam.jpg", HTTP_POST, liveCamHandler);
 
-  // ftp.addUser(FTP_USER, FTP_PASSWORD);
-  // ftp.addFilesystem("SD", &SD_MMC);
-  // ftp.begin();
+  ftp.addUser(FTP_USER, FTP_PASSWORD);
+  ftp.addFilesystem("SD", &SD_MMC);
+  ftp.begin();
 
   server.serveStatic("/live-cam.jpg", SD_MMC, tempCamImageName);
   server.on("/refresh-cam", HTTP_POST, [](AsyncWebServerRequest *req)
@@ -210,7 +212,6 @@ void setup()
   server.onNotFound([](AsyncWebServerRequest *request)
                     { request->send(404); });
 
-
   // restore session
   resumeSession();
 
@@ -243,7 +244,6 @@ void updateCurrentSequenceInfo(){
 void createNewSequence()
 {
   Serial.println("createNewSequence()");
-  currentSeqIndex++;
   nextShotIndex = 0;
   saveSession();
   // tolerate if a sqeuence or shot already exists
@@ -299,7 +299,7 @@ void appendSequence()
 }
 void loop()
 {
-  //ftp.handle();
+  ftp.handle();
   commLoop();
   if (!camImageIsFresh)
   {
@@ -329,18 +329,5 @@ void loop()
     Serial.print("Image taken: ");
     Serial.println(shotName);
     updateCurrentSequenceInfo();
-  }
-  if (Serial.available())
-  {
-    String com = Serial.readStringUntil('\n');
-    com.trim();
-    if(com == "begin"){
-      createNewSequence();
-    }
-    else if(com == "end"){
-      endSequence();
-    }else if(com == "append"){
-      appendSequence();
-    }
   }
 }

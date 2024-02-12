@@ -105,14 +105,14 @@ void commLoop()
         if(com.startsWith("begin")){
             printingStatusNotifyCallback(com.substring(6).toInt());
         }
-        else if(com.startsWith("inc")){
+        else if(com.startsWith("inc")){       
             requestShotNotifyCallback(com.substring(4).toFloat());
         }
         else if(com.startsWith("end")){
             printingStatusNotifyCallback(-1);
         }
         else if(com.startsWith("z")){
-            requestShotNotifyCallback(com.substring(2).toFloat());
+            positionZNotifyCallback(com.substring(2).toFloat());
         }
         else
             Serial.println("Com not processed");

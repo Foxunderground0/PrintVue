@@ -196,11 +196,11 @@ class Video {
         if (!res.ok) reject();
         var meta_info = await res.json();
         this.meta = meta_info;
-        //console.log("Fetched meta:", meta_info);
+        console.log("Fetched meta:", meta_info);
         this.frames = [];
         for (
           var i = meta_info.startFrameIndex;
-          i < meta_info.endFrameIndex;
+          i <= meta_info.endFrameIndex;
           i++
         ) {
           this.frames.push({

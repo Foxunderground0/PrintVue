@@ -1,0 +1,17 @@
+﻿Report Name: D:\UserProfile\Documents\GitHub\PrintVue\Mechanical\report.txt
+Report Time: 2/14/2024 4:24:41 PM
+Report Options:
+    Part Names
+
+Select Set #1:
+    ESP Case.par:1
+
+Select Set #2:
+    ESP32 Cam.par:1
+
+Interferences:
+    1 of 1
+    ESP Case.par:1
+    ESP32 Cam.par:1
+
+    1 Interferences Detected

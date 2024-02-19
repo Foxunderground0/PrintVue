@@ -100,10 +100,11 @@ class Video {
             const blob = await resp.blob();
             const objectURL = URL.createObjectURL(blob);
 
+            console.log("Cache thumb: ", objectURL);
             // cache the data for future use
             this.frames[0].imageData = objectURL;
             this.frames[0].blob = blob;
-            console.log("Cached thumb");
+            console.log("Cached thumb: ", objectURL);
             resolve(this.frames[0].imageData);
           });
         });
@@ -192,9 +193,14 @@ class Video {
         resolve();
         return;
       }
+	console.log("Loading Meta: ", this.root);
       fetch(this.root + "seq_info.json").then(async (res) => {
-        if (!res.ok) reject();
+	console.log("Loading Meta 2: ", res);
+        if (!res.ok) {reject();
+			console.log("Loading Meta 4: ", res);
+		}
         var meta_info = await res.json();
+		console.log("Loading Meta 3: ", meta_info);
         this.meta = meta_info;
         console.log("Fetched meta:", meta_info);
         this.frames = [];
@@ -210,7 +216,7 @@ class Video {
             OnDataLoaded: null,
           });
         }
-        //console.log("Init Frames:", this.frames);
+        console.log("Init Frames:", this.frames);
         this.isLoaded = true;
         resolve();
       });

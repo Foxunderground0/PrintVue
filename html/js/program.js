@@ -59,11 +59,12 @@ function FetchAll() {
     var firstLoad = true;
     for (var seqI in thumbnails) {
       var sequence = thumbnails[seqI];
-      //console.log("Adding:", sequence);
+      console.log("Adding:", sequence);
 
       const thumbnailCol = document.createElement("div");
       thumbnailCol.className = "col-xs-12 col-sm-6 col-md-6 col-lg-6"; // Adjust as needed
       thumbnailCol.classList.add("no-padding");
+	  
       const thumbnailContainer = document.createElement("div");
       thumbnailContainer.className = "thumbnail-container";
       thumbnailContainer.classList.add("thumbnail-container-loading");
@@ -75,16 +76,22 @@ function FetchAll() {
       const spinner = document.createElement("div");
       spinner.id = "thumbnail-spinner";
       thumbnailContainer.appendChild(spinner);
+      console.log("Added Spinner:", spinner);
 
       thumbnailContainer.appendChild(thumbnailImg);
+      console.log("Added thumbnailImg:", thumbnailImg);
       thumbnailCol.appendChild(thumbnailContainer);
+      console.log("Added thumbnailContainer:", thumbnailContainer);
       thumbnailRow.appendChild(thumbnailCol);
+      console.log("Added thumbnailCol:", thumbnailCol);
 
       var vid = LoadVideo("gallery/" + sequence + "/");
       vid.thumbnailImg = thumbnailImg;
       vid.thumbnailContainer = thumbnailContainer;
       vid.spinner = spinner;
+      console.log("Load Thumbnail:", vid);
       var img = await vid.LoadThumbnail();
+	  console.log('Loaded Thumb', performance.now());
       thumbnailImg.src = img;
 
       if (firstLoad) {
@@ -106,6 +113,7 @@ function FetchAll() {
         currentVideo = vid;
         vid.Load();
       });
+      console.log("Added:", sequence);
     }
     var msg = document.getElementById("thumbnail-loading-msg");
     console.log("msg", msg);

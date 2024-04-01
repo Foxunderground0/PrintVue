@@ -5,12 +5,13 @@
 #include "FS.h"     // SD Card ESP32
 #include "SD_MMC.h" // SD Card ESP32
 #include <EEPROM.h> // read and write from flash memory
-#include "CamWebServer.h"
 #include <ESPAsyncWebServer.h>
 #include <ESP-FTP-Server-Lib.h>
 #include <FTPFilesystem.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
+#include <AsyncWebSocket.h>
+#include <HTTPClient.h>
 
 #define FTP_USER "ftp"
 #define FTP_PASSWORD "ftp"
@@ -19,22 +20,25 @@
 #define settingsRoot "/PrintVue/Settings"
 #define wwwRoot systemRoot "/www"
 #define galleryRoot wwwRoot "/gallery"
+#define serverUrl "http://DamnIt:3000/api/upload"
 
 FTPServer ftp;
 AsyncWebServer server = AsyncWebServer(80);
 int currentSeqIndex = 0;
 int nextShotIndex = 0;
+bool WIFIConnected = false;
+bool uploadSequenceShotToServerForLayerHealthRequest = false;
 void commLoop();
 void commSetup();
 
 void LEDBlinkLoop(long period)
 {
-	int v = 255 - abs((((long)millis() % period) * 510) / period  - 255); // 0 > 255 > 0
-	analogWrite(33, v);
+  int v = 255 - abs((((long)millis() % period) * 510) / period - 255); // 0 > 255 > 0
+  analogWrite(33, v);
 }
 void Error(int period)
 {
-  while(1){
+  while (1) {
     LEDBlinkLoop(period);
     delay(1);
   }
@@ -97,9 +101,9 @@ int sentCamBytes = 0;
 bool camImageIsFresh = false;
 bool takeSequenceShotRequest = false;
 #define tempCamImageName "/PrintVue/temp-cam.jpg"
-camera_fb_t *fb = NULL;
-uint8_t *_jpg_buf = NULL;
-char *part_buf[64];
+camera_fb_t* fb = NULL;
+uint8_t* _jpg_buf = NULL;
+char* part_buf[64];
 
 void setup()
 {
@@ -107,37 +111,35 @@ void setup()
   delay(100);
 
   commSetup();
-  
+
   Serial.println("Starting SD Card");
   if (!SD_MMC.begin("/sdcard", true))
   {
     Serial.println("SD Card Mount Failed");
     Error(500);
-  }
-  else
+  } else
   {
     uint8_t cardType = SD_MMC.cardType();
     if (cardType == CARD_NONE)
     {
       Serial.println("No SD Card attached");
       Error(1000);
-    }
-    else
+    } else
     {
       Serial.println("SD Card present");
-      if (!SD_MMC.exists(systemRoot)){
+      if (!SD_MMC.exists(systemRoot)) {
         Serial.println("systen root doesn't exist.");
         SD_MMC.mkdir(systemRoot);
       }
-      if (!SD_MMC.exists(wwwRoot)){
+      if (!SD_MMC.exists(wwwRoot)) {
         SD_MMC.mkdir(wwwRoot);
         Serial.println("www doesn't exist.");
       }
-      if (!SD_MMC.exists(galleryRoot)){
+      if (!SD_MMC.exists(galleryRoot)) {
         Serial.println("gallery doesn't exist.");
         SD_MMC.mkdir(galleryRoot);
       }
-      if (!SD_MMC.exists(settingsRoot)){
+      if (!SD_MMC.exists(settingsRoot)) {
         Serial.println("settings doesn't exist.");
         SD_MMC.mkdir(settingsRoot);
       }
@@ -147,70 +149,94 @@ void setup()
   if (!CameraSetup())
     Error(1500);
   Serial.println("Camera present");
-  // start FTP
 
+  //Start the ESP in AP and STA mode
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.begin("Storm PTCL", "35348E80687?!");
   WiFi.softAP("M3D PrintVue", "12345678");
+
+  // Timeout if not connected to wifi in 10 seconds
+  long WIFIConnectTimeout = millis() + 10000;
+
+  Serial.print("Connecting to WiFi..");
+  while (WiFi.status() != WL_CONNECTED && millis() < WIFIConnectTimeout)
+  {
+    Serial.print(".");
+    delay(1000);
+  }
+
+  Serial.println("");
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Failed to connect to WiFi, Continuing in AP mode");
+  } else {
+    Serial.print("Connected to WiFi: ");
+    Serial.println(WiFi.localIP());
+    WIFIConnected = true;
+  }
+
   // dnsServer.start(53, "markhor.local", WiFi.softAPIP());
   server.serveStatic("/", SD_MMC, "www");
   // server.on("/live-cam.jpg", HTTP_POST, liveCamHandler);
 
+  // start FTP
   ftp.addUser(FTP_USER, FTP_PASSWORD);
   ftp.addFilesystem("SD", &SD_MMC);
   ftp.begin();
 
   server.serveStatic("/live-cam.jpg", SD_MMC, tempCamImageName);
-  server.on("/refresh-cam", HTTP_POST, [](AsyncWebServerRequest *req)
-            {
-    camImageIsFresh = false;
-    while (!camImageIsFresh) //
+  server.on("/refresh-cam", HTTP_POST, [](AsyncWebServerRequest* req)
     {
-      delay(10);
-    }
+      camImageIsFresh = false;
+      while (!camImageIsFresh) //
+      {
+        delay(10);
+      }
 
-    req->send(200); });
+      req->send(200); });
   // server.on("/cam-image.jpg", HTTP_GET, camImageHandler);
 
-  server.on("/gallery/sequences.json", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
-    Serial.println("Get sequences");
-    DynamicJsonDocument doc(1024);  // Allocate memory for JSON document
-    JsonArray list = doc.createNestedArray("list");
+  server.on("/gallery/sequences.json", HTTP_GET, [](AsyncWebServerRequest* request)
+    {
+      Serial.println("Get sequences");
+      DynamicJsonDocument doc(1024);  // Allocate memory for JSON document
+      JsonArray list = doc.createNestedArray("list");
 
-    String rootDir = String(galleryRoot);
-    File root = SD_MMC.open(rootDir);  // Open root directory
-    if (!root) {
-      Serial.println("Failed to open /www directory");
-      request->send(500, "text/plain", "Error accessing directory");
-      return;
-    }
+      String rootDir = String(galleryRoot);
+      File root = SD_MMC.open(rootDir);  // Open root directory
+      if (!root) {
+        Serial.println("Failed to open /www directory");
+        request->send(500, "text/plain", "Error accessing directory");
+        return;
+      }
 
-    File file;
-    while (file = root.openNextFile()) {
-      if (file.isDirectory()) {
-        String dirName = file.name();
-        if (dirName.startsWith("s") && dirName.length() > 1 && isDigit(dirName.charAt(1))) {
-          // Check for seq_info.json inside the directory
-          String fName = rootDir + "/" + String(file.name()) + "/seq_info.json";
-          file = SD_MMC.open(fName);
-          if (file) {
-            Serial.println("Adding: " + dirName);
-            file.close();  // Close seq_info.json file
-            list.add(dirName);  // Add directory name to JSON list
+      File file;
+      while (file = root.openNextFile()) {
+        if (file.isDirectory()) {
+          String dirName = file.name();
+          if (dirName.startsWith("s") && dirName.length() > 1 && isDigit(dirName.charAt(1))) {
+            // Check for seq_info.json inside the directory
+            String fName = rootDir + "/" + String(file.name()) + "/seq_info.json";
+            file = SD_MMC.open(fName);
+            if (file) {
+              Serial.println("Adding: " + dirName);
+              file.close();  // Close seq_info.json file
+              list.add(dirName);  // Add directory name to JSON list
+            }
           }
         }
+        file.close();
       }
-      file.close();
-    }
 
-    root.close();
+      root.close();
 
-    String response;
-    serializeJson(doc, response);
-    request->send(200, "application/json", response); });
+      String response;
+      serializeJson(doc, response);
+      request->send(200, "application/json", response); });
 
   server.serveStatic("/", SD_MMC, "/PrintVue/www").setDefaultFile("index.html");
-  server.onNotFound([](AsyncWebServerRequest *request)
-                    { request->send(404); });
+  server.onNotFound([](AsyncWebServerRequest* request)
+    { request->send(404); });
 
   // restore session
   resumeSession();
@@ -218,13 +244,13 @@ void setup()
   server.begin();
 }
 
-void updateCurrentSequenceInfo(){
+void updateCurrentSequenceInfo() {
   Serial.print("Update current sequence info: ");
-  String seqInfoFile = String(galleryRoot) + "/s" + String(currentSeqIndex) + "/seq_info.json";  
+  String seqInfoFile = String(galleryRoot) + "/s" + String(currentSeqIndex) + "/seq_info.json";
   Serial.println(seqInfoFile);
-  
+
   File f = SD_MMC.open(seqInfoFile, FILE_WRITE);
-  if (!f){
+  if (!f) {
     Serial.println("Could not save sequence file");
     return;
   }
@@ -256,8 +282,7 @@ void createNewSequence()
     if (SD_MMC.exists(seqName))
     {
       continue;
-    }
-    else
+    } else
     {
       currentSeqIndex = i;
       Serial.print("Create new sequence: ");
@@ -275,8 +300,7 @@ void createNewSequence()
     if (SD_MMC.exists(shotName))
     {
       continue;
-    }
-    else
+    } else
     {
       nextShotIndex = i;
       saveSession();
@@ -297,6 +321,75 @@ void appendSequence()
   Serial.println("appendSequence()");
   takeSequenceShotRequest = true;
 }
+
+// Temporary function to test file upload
+void setUploadSequenceShotToServer()
+{
+  Serial.println("[Call to upload sequence shot to server for layer health]");
+  uploadSequenceShotToServerForLayerHealthRequest = true;
+}
+
+void uploadImageTask(void* parameter) {
+  String shotName = *((String*)parameter);
+
+  // Open the image file
+  File imageFile = SD_MMC.open(shotName, FILE_READ);
+  if (!imageFile) {
+    Serial.println("Failed to open image file");
+    return;
+  }
+
+  // Get the file size
+  size_t fileSize = imageFile.size();
+
+  // Create a buffer to store the image data
+  uint8_t* imageData = new uint8_t[fileSize];
+  if (!imageData) {
+    Serial.println("Failed to allocate memory for image data");
+    imageFile.close();
+    return;
+  }
+
+  // Read the image data from the file
+  if (imageFile.read(imageData, fileSize) != fileSize) {
+    Serial.println("Failed to read image data");
+    delete[] imageData;
+    imageFile.close();
+    return;
+  }
+
+  // Close the image file
+  imageFile.close();
+
+  // Send the POST request with the image data
+  HTTPClient http;
+  http.begin(serverUrl);
+  http.addHeader("Content-Type", "image/jpeg");
+  int httpResponseCode = http.POST(imageData, fileSize);
+
+  // Check HTTP response
+  if (httpResponseCode == HTTP_CODE_OK) {
+    Serial.println("Image uploaded successfully");
+  } else {
+    Serial.print("Failed to upload image. Error code: ");
+    Serial.println(httpResponseCode);
+  }
+
+  // Clean up
+  http.end();
+  delete[] imageData;
+
+  return;
+}
+
+void uploadSequenceShotToServerForLayerHealth(String shotName) {
+  Serial.print("[Upload sequence shot to server for layer health] Image at: ");
+  Serial.println(shotName);
+
+  // Start the upload image task
+  xTaskCreatePinnedToCore(uploadImageTask, "uploadImageTask", 8192, (void*)&shotName, 1, NULL, 0);
+}
+
 void loop()
 {
   ftp.handle();
@@ -329,5 +422,6 @@ void loop()
     Serial.print("Image taken: ");
     Serial.println(shotName);
     updateCurrentSequenceInfo();
+    uploadSequenceShotToServerForLayerHealth(shotName);
   }
 }

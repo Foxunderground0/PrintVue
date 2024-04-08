@@ -12,6 +12,8 @@
 #include <Preferences.h>
 #include <AsyncWebSocket.h>
 #include <HTTPClient.h>
+#include <WiFiClient.h>
+//#include <esp_http_client.h>
 
 #define FTP_USER "ftp"
 #define FTP_PASSWORD "ftp"
@@ -20,7 +22,7 @@
 #define settingsRoot "/PrintVue/Settings"
 #define wwwRoot systemRoot "/www"
 #define galleryRoot wwwRoot "/gallery"
-#define serverUrl "http://DamnIt:3000/api/upload"
+#define serverUrl "http://192.168.1.101:3000/"
 
 FTPServer ftp;
 AsyncWebServer server = AsyncWebServer(80);
@@ -28,6 +30,19 @@ int currentSeqIndex = 0;
 int nextShotIndex = 0;
 bool WIFIConnected = false;
 bool uploadSequenceShotToServerForLayerHealthRequest = false;
+
+struct imageInfo {
+  uint32_t fileSize;
+};
+
+int remainingCamBytes = 0;
+int sentCamBytes = 0;
+bool camImageIsFresh = false;
+bool takeSequenceShotRequest = false;
+#define tempCamImageName "/PrintVue/temp-cam.jpg"
+camera_fb_t* fb = NULL;
+uint8_t* _jpg_buf = NULL;
+char* part_buf[64];
 void commLoop();
 void commSetup();
 
@@ -96,14 +111,6 @@ void saveSession()
   SaveSetting("current seq", String(currentSeqIndex));
   SaveSetting("next shot", String(nextShotIndex));
 }
-int remainingCamBytes = 0;
-int sentCamBytes = 0;
-bool camImageIsFresh = false;
-bool takeSequenceShotRequest = false;
-#define tempCamImageName "/PrintVue/temp-cam.jpg"
-camera_fb_t* fb = NULL;
-uint8_t* _jpg_buf = NULL;
-char* part_buf[64];
 
 void setup()
 {
@@ -267,6 +274,7 @@ void updateCurrentSequenceInfo() {
   f.print(serialJson);
   f.close();
 }
+
 void createNewSequence()
 {
   Serial.println("createNewSequence()");
@@ -329,8 +337,9 @@ void setUploadSequenceShotToServer()
   uploadSequenceShotToServerForLayerHealthRequest = true;
 }
 
-void uploadImageTask(void* parameter) {
-  String shotName = *((String*)parameter);
+void uploadSequenceShotToServerForLayerHealth(String shotName) {
+  Serial.print("[Upload sequence shot to server for layer health] Image at: ");
+  Serial.println(shotName);
 
   // Open the image file
   File imageFile = SD_MMC.open(shotName, FILE_READ);
@@ -339,56 +348,34 @@ void uploadImageTask(void* parameter) {
     return;
   }
 
-  // Get the file size
-  size_t fileSize = imageFile.size();
+  WiFiClient client;
+  HTTPClient http;
 
-  // Create a buffer to store the image data
-  uint8_t* imageData = new uint8_t[fileSize];
-  if (!imageData) {
-    Serial.println("Failed to allocate memory for image data");
-    imageFile.close();
-    return;
+  // Start a POST request
+  http.begin(client, serverUrl);
+  http.addHeader("Content-Type", "image/jpeg");
+
+  // Send the image data in chunks
+  const size_t chunkSize = 1024;
+  uint8_t buffer[chunkSize];
+
+  while (http.connected() && imageFile.available()) {
+    size_t bytesRead = imageFile.readBytes(reinterpret_cast<char*>(buffer), chunkSize);
+    if (bytesRead > 0) {
+      client.write(buffer, bytesRead);
+    }
   }
 
-  // Read the image data from the file
-  if (imageFile.read(imageData, fileSize) != fileSize) {
-    Serial.println("Failed to read image data");
-    delete[] imageData;
-    imageFile.close();
-    return;
-  }
+  // Finalize the request
+  http.end();
+
 
   // Close the image file
   imageFile.close();
-
-  // Send the POST request with the image data
-  HTTPClient http;
-  http.begin(serverUrl);
-  http.addHeader("Content-Type", "image/jpeg");
-  int httpResponseCode = http.POST(imageData, fileSize);
-
-  // Check HTTP response
-  if (httpResponseCode == HTTP_CODE_OK) {
-    Serial.println("Image uploaded successfully");
-  } else {
-    Serial.print("Failed to upload image. Error code: ");
-    Serial.println(httpResponseCode);
-  }
-
-  // Clean up
-  http.end();
-  delete[] imageData;
-
-  return;
 }
 
-void uploadSequenceShotToServerForLayerHealth(String shotName) {
-  Serial.print("[Upload sequence shot to server for layer health] Image at: ");
-  Serial.println(shotName);
 
-  // Start the upload image task
-  xTaskCreatePinnedToCore(uploadImageTask, "uploadImageTask", 8192, (void*)&shotName, 1, NULL, 0);
-}
+
 
 void loop()
 {
